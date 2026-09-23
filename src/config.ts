@@ -6,8 +6,11 @@ export const SITE = {
     'Learn how PDF files work and fix common PDF problems: compress large PDFs, unlock, convert, merge, fix fonts and more. Free, clear, step-by-step guides.',
   // Google Analytics 4 Measurement ID, e.g. 'G-XXXXXXXXXX'. Leave empty to disable tracking.
   gaId: 'G-9PCRLE6VN7',
-  // Google Search Console HTML-tag verification token
-  googleSiteVerification: 'pILEe3NpU_EmgYlzf17hVWMDa-oCBlaH3BE_isTjbiQ',
+  // Google Search Console HTML-tag verification tokens (one per Search Console property)
+  googleSiteVerification: [
+    'pILEe3NpU_EmgYlzf17hVWMDa-oCBlaH3BE_isTjbiQ', // https://pengj3820.github.io
+    'fMBiu0rtYMlT9wb_TIrzVER-PZG1ZZZccpBuuyhzvdo', // https://pdffluid.com
+  ],
 };
 
 export const CATEGORIES: Record<string, { label: string; color: string; icon: string }> = {
