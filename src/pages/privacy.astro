@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import { SITE } from '../config';
 ---
 <Base title="Privacy Policy" description="How PDF Fluid handles data and analytics.">
   <section class="page-head"><div class="container"><h1>Privacy policy</h1><p>Last updated September 2026.</p></div></section>
@@ -12,6 +13,6 @@ import Base from '../layouts/Base.astro';
     <h2>External links</h2>
     <p>Our guides link to third-party tools and websites. Their privacy practices are their own; please review them before uploading documents.</p>
     <h2>Contact</h2>
-    <p>Questions about this policy can be sent via the contact details on our About page.</p>
+    <p>Questions about this policy? Email <a href={`mailto:${SITE.email}`}>{SITE.email}</a>.</p>
   </div>
 </Base>

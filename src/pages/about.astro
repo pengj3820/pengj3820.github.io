@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import { SITE } from '../config';
 ---
 <Base title="About PDF Fluid" description="PDF Fluid explains how PDF files work and how to fix common PDF problems, in plain English.">
   <section class="page-head"><div class="container"><h1>About PDF Fluid</h1><p>Plain-English answers to every PDF problem.</p></div></section>
@@ -15,5 +16,7 @@ import Base from '../layouts/Base.astro';
     </ul>
     <h2>Coming soon</h2>
     <p>We're building free PDF tools that run entirely in your browser, so your files never leave your device.</p>
+    <h2 id="contact">Contact</h2>
+    <p>Found a mistake, have a PDF problem we haven't covered, or want to suggest a tool? Email us at <a href={`mailto:${SITE.email}`}>{SITE.email}</a>. We read every message.</p>
   </div>
 </Base>

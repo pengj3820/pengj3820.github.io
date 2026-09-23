@@ -1,6 +1,7 @@
 export const SITE = {
   name: 'PDF Fluid',
   domain: 'pdffluid.com',
+  email: 'hello@pdffluid.com',
   tagline: 'Plain-English answers to every PDF problem',
   description:
     'Learn how PDF files work and fix common PDF problems: compress large PDFs, unlock, convert, merge, fix fonts and more. Free, clear, step-by-step guides.',
