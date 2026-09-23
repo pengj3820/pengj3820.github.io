@@ -6,6 +6,9 @@ export async function getQuestions() {
 export async function getLearn() {
   return (await getCollection('learn')).sort((a, b) => a.data.order - b.data.order);
 }
+export async function getDevelopers() {
+  return (await getCollection('developers')).sort((a, b) => a.data.order - b.data.order);
+}
 export function faqLd(faqs: { q: string; a: string }[]) {
   return {
     '@context': 'https://schema.org',

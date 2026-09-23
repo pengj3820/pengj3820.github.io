@@ -37,6 +37,8 @@ A scanned page is just a photo. To a computer, the word "Invoice" in a scan is a
 | **Microsoft Lens** | iPhone/Android | Scan to searchable PDF or Word |
 | **OCRmyPDF** | Windows/Mac/Linux (free, open source) | Adds a text layer while keeping the original scan; runs locally |
 
+Developers can also run OCR in Python with **PaddleOCR**. See [How to OCR a PDF with PaddleOCR](/developers/paddleocr-pdf-ocr/).
+
 ## Tips for better OCR results
 
 - Scan at **300 DPI**. Lower loses detail, higher rarely helps.

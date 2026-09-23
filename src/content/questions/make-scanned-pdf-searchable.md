@@ -40,6 +40,10 @@ ocrmypdf --language eng input.pdf output.pdf
 
 Keeps the original scan, adds a text layer, and can also deskew pages (`--deskew`) and optimise size (`--optimize 2`).
 
+## For developers (Python)
+
+Automating OCR in code? See [How to OCR a PDF with PaddleOCR](/developers/paddleocr-pdf-ocr/), which includes a script that builds a searchable PDF with PyMuPDF.
+
 ## Apple devices
 
 On macOS 13+ and iOS 16+, **Live Text** lets you select text in scans directly in Preview and Files, without a permanent text layer.

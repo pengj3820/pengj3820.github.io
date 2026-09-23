@@ -3,7 +3,7 @@ title: "How to Change Text in a PDF (Free and Paid Methods)"
 description: "Fix a typo, update a name, date or number, or replace a sentence in a PDF, keeping the original font and layout."
 answer: "To change existing text you need a tool that edits PDF text directly: Adobe Acrobat Pro (paid, best results), LibreOffice Draw (free, desktop) or an online PDF editor. For whole paragraphs, convert the PDF to Word, edit, and save it as a PDF again. Macs, iPhones and Android phones have no built-in way to change existing text; you can only cover it with a white box and type over it."
 category: edit
-updated: 2026-09-24
+updated: 2026-09-23
 related: ["how-to-edit-a-pdf", "convert-pdf-to-word", "pdf-fonts-look-wrong", "make-scanned-pdf-searchable", "remove-pdf-password"]
 learn: ["fonts-in-pdf", "scanned-vs-text-pdf", "what-is-a-pdf"]
 faqs:

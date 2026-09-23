@@ -32,4 +32,18 @@ const questions = defineCollection({
   }),
 });
 
-export const collections = { learn, questions };
+const developers = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/developers' }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string(),
+    summary: z.string(),
+    order: z.number(),
+    tags: z.array(z.string()).default([]),
+    faqs: faq,
+    related: z.array(z.string()).default([]),
+    updated: z.coerce.date(),
+  }),
+});
+
+export const collections = { learn, questions, developers };

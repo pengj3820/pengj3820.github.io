@@ -1,0 +1,77 @@
+---
+import { render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Faq from '../../components/Faq.astro';
+import Helpful from '../../components/Helpful.astro';
+import { getQuestions, getDevelopers, faqLd, breadcrumbLd, fmtDate } from '../../lib';
+
+export async function getStaticPaths() {
+  const ds = await getDevelopers();
+  return ds.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+const { entry } = Astro.props;
+const { Content, headings } = await render(entry);
+const d = entry.data;
+const allQ = await getQuestions();
+const related = d.related.map((id) => allQ.find((q) => q.id === id)).filter((q) => !!q);
+const allD = await getDevelopers();
+const toc = headings.filter((h) => h.depth === 2);
+const site = Astro.site!;
+const ld: object[] = [
+  {
+    '@context': 'https://schema.org', '@type': 'TechArticle', headline: d.title, description: d.description,
+    dateModified: d.updated.toISOString(), mainEntityOfPage: new URL(Astro.url.pathname, site).href,
+    proficiencyLevel: 'Beginner', publisher: { '@type': 'Organization', name: 'PDF Fluid' },
+  },
+  breadcrumbLd(site, [{ name: 'Home', path: '/' }, { name: 'Developers', path: '/developers/' }, { name: d.title, path: Astro.url.pathname }]),
+];
+if (d.faqs.length) ld.push(faqLd(d.faqs));
+---
+<Base title={d.title} description={d.description} type="article" jsonLd={ld}>
+  <div class="container">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a><span>›</span><a href="/developers/">Developers</a>
+    </nav>
+    <div class="article-wrap">
+      <article data-pagefind-body>
+        <header class="article-head">
+          <h1>{d.title}</h1>
+          <div class="meta">
+            <span class="pill" style="background:var(--ink)">For developers</span>
+            {d.tags.map((t) => <span class="pill" style="background:var(--bg-2);color:var(--ink-2)">{t}</span>)}
+            <span data-pagefind-ignore>Updated {fmtDate(d.updated)}</span>
+          </div>
+        </header>
+        <div class="answer-box">
+          <strong class="label">In short</strong>
+          <p>{d.summary}</p>
+        </div>
+        <div class="prose">
+          <Content />
+        </div>
+        <Faq faqs={d.faqs} />
+        <div data-pagefind-ignore><Helpful /></div>
+      </article>
+      <aside class="sidebar" data-pagefind-ignore>
+        <div class="sticky">
+          {toc.length > 2 && (
+            <div class="side-box">
+              <h3>On this page</h3>
+              <ul>{toc.map((h) => <li><a href={`#${h.slug}`}>{h.text}</a></li>)}</ul>
+            </div>
+          )}
+          <div class="side-box">
+            <h3>Developer guides</h3>
+            <ul>{allD.map((x) => <li><a href={`/developers/${x.id}/`} style={x.id === entry.id ? 'color:var(--brand)' : ''}>{x.data.title}</a></li>)}</ul>
+          </div>
+          {related.length > 0 && (
+            <div class="side-box">
+              <h3>No-code alternatives</h3>
+              <ul>{related.map((q) => <li><a href={`/questions/${q.id}/`}>{q.data.title}</a></li>)}</ul>
+            </div>
+          )}
+        </div>
+      </aside>
+    </div>
+  </div>
+</Base>

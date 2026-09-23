@@ -18,6 +18,7 @@ const path = Astro.url.pathname;
 const nav = [
   { href: '/questions/', label: 'PDF Problems' },
   { href: '/learn/', label: 'PDF Basics' },
+  { href: '/developers/', label: 'Developers' },
   { href: '/about/', label: 'About' },
 ];
 const ld = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
@@ -106,6 +107,7 @@ const ld = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
               <li><a href="/learn/scanned-vs-text-pdf/">Scanned vs text PDF</a></li>
               <li><a href="/learn/what-is-ocr/">What is OCR?</a></li>
               <li><a href="/learn/">All basics</a></li>
+              <li><a href="/developers/">Python PDF guides</a></li>
             </ul>
           </div>
           <div>
