@@ -3,7 +3,6 @@ title: "How to Scan a Document to PDF With Your Phone"
 description: "Use your iPhone or Android phone as a free document scanner that creates clean, cropped PDFs."
 answer: "On iPhone, open the Files app (or Notes), tap … > Scan Documents, point the camera at the page, and save as PDF. On Android, open Google Drive, tap + > Scan. Both auto-crop, straighten and enhance the page. Scan several pages into one PDF before saving."
 category: scan
-popular: true
 updated: 2026-09-23
 related: ["make-scanned-pdf-searchable", "convert-images-to-pdf", "how-to-compress-a-pdf", "sign-a-pdf"]
 learn: ["scanned-vs-text-pdf", "what-is-ocr", "images-in-pdf"]

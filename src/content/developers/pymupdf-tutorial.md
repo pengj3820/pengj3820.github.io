@@ -35,7 +35,7 @@ import pymupdf
 print(pymupdf.__doc__)  # PyMuPDF 1.28.2: Python bindings for the MuPDF 1.28.2 library.
 ```
 
-> **`import fitz` vs `import pymupdf`:** older tutorials use `import fitz`. It still works but is deprecated and prints a warning. Use `import pymupdf` in new code; the functions are identical.
+> **`import fitz` vs `import pymupdf`:** older tutorials use `import fitz`. It still works but is deprecated and prints a warning. Use `import pymupdf` in new code; the functions are identical. More: [fitz vs pymupdf](/developers/pymupdf-import-fitz/).
 
 ## Open a PDF and read its metadata
 

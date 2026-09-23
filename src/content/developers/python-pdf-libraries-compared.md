@@ -134,4 +134,5 @@ ocrmypdf --language eng input.pdf output.pdf
 
 - **Text extraction pipeline:** PyMuPDF to read; if a page returns no text, send it to PaddleOCR.
 - **Invoice or report data:** pdfplumber for tables, PyMuPDF for everything else.
+- **LLM / RAG ingestion:** see [How to convert PDF to Markdown for LLMs](/developers/pdf-to-markdown-for-llms/) and [AI PDF parsing tools](/developers/ai-pdf-parsing-tools/).
 - **Closed-source product:** pypdf plus pdfplumber, with PaddleOCR or OCRmyPDF for scans. All have permissive licences.

@@ -42,7 +42,7 @@ Keeps the original scan, adds a text layer, and can also deskew pages (`--deskew
 
 ## For developers (Python)
 
-Automating OCR in code? See [How to OCR a PDF with PaddleOCR](/developers/paddleocr-pdf-ocr/), which includes a script that builds a searchable PDF with PyMuPDF.
+Automating OCR in code? See [How to OCR a PDF with PaddleOCR](/developers/paddleocr-pdf-ocr/), which includes a script that builds a searchable PDF with PyMuPDF. Getting `page already has text` from OCRmyPDF? See [this fix](/developers/ocrmypdf-page-already-has-text/).
 
 ## Apple devices
 

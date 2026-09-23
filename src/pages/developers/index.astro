@@ -2,25 +2,35 @@
 import Base from '../../layouts/Base.astro';
 import { getDevelopers } from '../../lib';
 const ds = await getDevelopers();
+const isFix = (d: (typeof ds)[number]) => d.data.tags.includes('Error fix');
+const groups = [
+  { title: 'Guides', items: ds.filter((d) => !isFix(d)) },
+  { title: 'Fix common errors', items: ds.filter(isFix) },
+];
 ---
-<Base title="Python PDF Guides for Developers" description="Practical, tested Python guides for working with PDFs: PyMuPDF, PaddleOCR, pypdf, pdfplumber and OCRmyPDF, with copy-paste code.">
+<Base title="Python & JavaScript PDF Guides for Developers" description="Tested code for extracting, editing, converting and OCR-ing PDFs with PyMuPDF, PaddleOCR, pypdf, pdf.js and more, plus fixes for common PDF library errors.">
   <section class="page-head">
     <div class="container">
       <h1>For developers</h1>
-      <p>Tested Python code for extracting, editing and OCR-ing PDFs. Copy, paste, run.</p>
+      <p>Tested code for extracting, editing, converting and OCR-ing PDFs, plus fixes for the errors you'll hit along the way.</p>
     </div>
   </section>
-  <div class="container" style="padding: 24px 16px 56px">
-    <div class="grid">
-      {ds.map((d) => (
-        <a class="card" href={`/developers/${d.id}/`}>
-          <span class="step-num" aria-hidden="true">&lt;/&gt;</span>
-          <div>
-            <h3>{d.data.title}</h3>
-            <p>{d.data.description}</p>
-          </div>
-        </a>
-      ))}
-    </div>
+  <div class="container" style="padding: 8px 16px 56px">
+    {groups.map((g) => (
+      <section class="cat-block">
+        <h2 style="margin-top:24px">{g.title}</h2>
+        <div class="grid">
+          {g.items.map((d) => (
+            <a class="card" href={`/developers/${d.id}/`}>
+              <span class="step-num" aria-hidden="true">{isFix(d) ? '!' : '</>'}</span>
+              <div>
+                <h3>{d.data.title}</h3>
+                <p>{d.data.description}</p>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    ))}
   </div>
 </Base>

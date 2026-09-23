@@ -259,7 +259,7 @@ Most tutorials online still show the 2.x API, which is deprecated in 3.x:
 
 | Problem | Fix |
 |---|---|
-| `No available model hosting platforms detected` | Models can't be downloaded. Check your network, or set `PADDLE_PDX_MODEL_SOURCE` (see [Install](#install)) |
+| `No available model hosting platforms detected` | Models can't be downloaded. See [the full fix](/developers/paddleocr-no-model-hosting-platforms/), including offline use |
 | Poor accuracy on small text | Render pages at 300 DPI instead of 200 |
 | Garbled output on Chinese documents | You set `lang="en"`; use `ch` |
 | Rotated or upside-down pages | Enable `use_doc_orientation_classify=True` |

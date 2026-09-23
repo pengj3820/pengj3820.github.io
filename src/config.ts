@@ -24,4 +24,5 @@ export const CATEGORIES: Record<string, { label: string; color: string; icon: st
   trouble: { label: 'Opening & Printing', color: '#EB5757', icon: 'alert' },
   scan: { label: 'Scans & OCR', color: '#00A3A3', icon: 'scan' },
   sign: { label: 'Forms & Signatures', color: '#4F5BD5', icon: 'sign' },
+  tools: { label: 'Free PDF Tools', color: '#1F2330', icon: 'zap' },
 };
