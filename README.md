@@ -20,4 +20,4 @@ Each file's front matter holds the title, SEO description, quick answer, categor
 ## Settings
 
 - `src/config.ts` – site name, categories, and the Google Analytics ID (`gaId`).
-- `astro.config.mjs` – change `site` to `https://pdffluid.com` once the domain is connected.
+- `astro.config.mjs` – `site` is the canonical domain (https://pdffluid.com); `public/CNAME` holds the custom domain.
