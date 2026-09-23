@@ -2,7 +2,8 @@ export const SITE = {
   name: 'PDF Fluid',
   domain: 'pdffluid.com',
   email: 'hello@pdffluid.com',
-  tagline: 'Plain-English answers to every PDF problem',
+  // Home page <title> suffix
+  homeTitle: 'Fix PDF Problems & Learn PDF Basics',
   description:
     'Learn how PDF files work and fix common PDF problems: compress large PDFs, unlock, convert, merge, fix fonts and more. Free, clear, step-by-step guides.',
   // Google Analytics 4 Measurement ID, e.g. 'G-XXXXXXXXXX'. Leave empty to disable tracking.

@@ -28,7 +28,7 @@ A raster image is a grid of coloured pixels: photos, screenshots and every page 
 - ❌ File size grows with resolution and colour depth
 - ✅ The only way to store photographs
 
-## Resolution (DPI) in plain English
+## What resolution (DPI) means
 
 DPI (dots per inch) is how many pixels are packed into each inch of the printed page.
 

@@ -1,6 +1,6 @@
 # PDF Fluid
 
-Plain-English answers to every PDF problem. Static site built with [Astro](https://astro.build), searchable with [Pagefind](https://pagefind.app), hosted on GitHub Pages.
+Guides to how PDFs work and how to fix common PDF problems. Static site built with [Astro](https://astro.build), searchable with [Pagefind](https://pagefind.app), hosted on GitHub Pages.
 
 ## Develop
 

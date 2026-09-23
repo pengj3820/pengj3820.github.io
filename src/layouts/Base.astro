@@ -12,7 +12,7 @@ interface Props {
   noindex?: boolean;
 }
 const { title, description = SITE.description, type = 'website', jsonLd, noindex = false } = Astro.props;
-const fullTitle = title === SITE.name ? `${SITE.name} – ${SITE.tagline}` : `${title} | ${SITE.name}`;
+const fullTitle = title === SITE.name ? `${SITE.name} – ${SITE.homeTitle}` : `${title} | ${SITE.name}`;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const path = Astro.url.pathname;
 const nav = [
@@ -89,7 +89,7 @@ const ld = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
         <div class="footer-grid">
           <div>
             <Logo />
-            <p style="margin-top:12px;max-width:340px">{SITE.tagline}. Clear guides that explain how PDFs work and how to fix them.</p>
+            <p style="margin-top:12px;max-width:340px">Clear guides that explain how PDFs work and how to fix them.</p>
           </div>
           <div>
             <h4>Problems</h4>
