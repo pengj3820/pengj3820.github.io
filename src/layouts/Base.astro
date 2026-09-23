@@ -43,16 +43,22 @@ const ld = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     <meta name="twitter:card" content="summary" />
     {ld.map((obj) => <script type="application/ld+json" set:html={JSON.stringify(obj)} />)}
     {SITE.gaId && (
-      <>
-        <script async src={`https://www.googletagmanager.com/gtag/js?id=${SITE.gaId}`}></script>
-        <script is:inline define:vars={{ gaId: SITE.gaId }}>
+      <script is:inline define:vars={{ gaId: SITE.gaId }}>
+        // Skip analytics for automated browsers (scanners, crawlers, headless Chrome) so reports reflect real visitors
+        var ua = navigator.userAgent || '';
+        var isBot = navigator.webdriver || /bot|crawl|spider|slurp|headless|lighthouse|pagespeed|preview|scanner|python|curl|wget|phantom|puppeteer|playwright/i.test(ua);
+        if (!isBot) {
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           window.gtag = gtag;
           gtag('js', new Date());
           gtag('config', gaId);
-        </script>
-      </>
+          var s = document.createElement('script');
+          s.async = true;
+          s.src = 'https://www.googletagmanager.com/gtag/js?id=' + gaId;
+          document.head.appendChild(s);
+        }
+      </script>
     )}
   </head>
   <body>
