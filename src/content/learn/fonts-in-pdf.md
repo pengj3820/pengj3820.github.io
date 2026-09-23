@@ -4,7 +4,7 @@ description: "How PDFs store fonts, what 'embedded' and 'subset' mean, and why m
 summary: "A well-made PDF embeds the fonts it uses, so text displays correctly on every device. If a font isn't embedded, the reader substitutes another one, which can change spacing or produce garbled characters."
 order: 4
 updated: 2026-09-23
-related: ["pdf-fonts-look-wrong", "cant-copy-text-from-pdf", "how-to-edit-a-pdf"]
+related: ["pdf-fonts-look-wrong", "change-text-in-pdf", "cant-copy-text-from-pdf", "how-to-edit-a-pdf"]
 faqs:
   - q: "How do I check which fonts a PDF uses?"
     a: "In Adobe Acrobat Reader choose File > Properties > Fonts. Each font is listed as 'Embedded', 'Embedded Subset', or not embedded."

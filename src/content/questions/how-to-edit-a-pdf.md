@@ -5,7 +5,7 @@ answer: "For quick changes, add text, highlights and drawings with free tools li
 category: edit
 popular: true
 updated: 2026-09-23
-related: ["convert-pdf-to-word", "fill-out-pdf-form", "delete-pages-from-pdf", "sign-a-pdf"]
+related: ["change-text-in-pdf", "convert-pdf-to-word", "fill-out-pdf-form", "delete-pages-from-pdf", "sign-a-pdf"]
 learn: ["what-is-a-pdf", "fonts-in-pdf", "scanned-vs-text-pdf"]
 faqs:
   - q: "Why is editing a PDF so difficult?"
@@ -39,6 +39,8 @@ faqs:
 **Any computer — Adobe Acrobat Reader (free):** use *Comment* or *Fill & Sign* to add text and marks.
 
 ## Change the existing text
+
+For a full walkthrough, including matching fonts and editing scans, see [How to change text in a PDF](/questions/change-text-in-pdf/).
 
 ### Method A: Microsoft Word (best for text documents)
 1. In Word, choose **File > Open** and select the PDF.

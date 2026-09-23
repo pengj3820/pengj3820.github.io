@@ -4,7 +4,7 @@ description: "Turn a scanned, image-only PDF into a searchable, copyable PDF for
 answer: "Run OCR (optical character recognition). Free options: open the PDF in Google Docs or Microsoft Word to extract editable text, or use OCRmyPDF (free, offline) to add an invisible text layer while keeping the scan's look. Adobe Acrobat Pro and many online tools also offer 'OCR PDF'."
 category: scan
 updated: 2026-09-23
-related: ["cant-copy-text-from-pdf", "scan-document-to-pdf-with-phone", "convert-pdf-to-word"]
+related: ["cant-copy-text-from-pdf", "change-text-in-pdf", "scan-document-to-pdf-with-phone", "convert-pdf-to-word"]
 learn: ["what-is-ocr", "scanned-vs-text-pdf"]
 faqs:
   - q: "Will OCR change the look of my scan?"

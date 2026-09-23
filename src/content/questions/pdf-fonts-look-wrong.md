@@ -4,7 +4,7 @@ description: "Fix PDFs that display the wrong font, boxes, question marks or gar
 answer: "The PDF usually doesn't embed its fonts, so your viewer substitutes others. Try opening it in a different viewer (Chrome, Edge, Acrobat Reader). If you made the PDF, re-export it with fonts embedded. If you received it, ask the sender to do the same."
 category: edit
 updated: 2026-09-23
-related: ["cant-copy-text-from-pdf", "pdf-wont-open", "pdf-prints-incorrectly"]
+related: ["change-text-in-pdf", "cant-copy-text-from-pdf", "pdf-wont-open", "pdf-prints-incorrectly"]
 learn: ["fonts-in-pdf", "pdf-versions-and-pdf-a"]
 faqs:
   - q: "Why do Chinese or Japanese characters show as boxes in a PDF?"
