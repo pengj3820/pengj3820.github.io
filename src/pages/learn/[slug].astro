@@ -1,0 +1,73 @@
+---
+import { render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Faq from '../../components/Faq.astro';
+import Helpful from '../../components/Helpful.astro';
+import { getQuestions, getLearn, faqLd, breadcrumbLd, fmtDate } from '../../lib';
+
+export async function getStaticPaths() {
+  const ls = await getLearn();
+  return ls.map((entry, i) => ({ params: { slug: entry.id }, props: { entry, prev: ls[i - 1], next: ls[i + 1] } }));
+}
+const { entry, prev, next } = Astro.props;
+const { Content } = await render(entry);
+const d = entry.data;
+const allQ = await getQuestions();
+const related = d.related.map((id) => allQ.find((q) => q.id === id)).filter((q) => !!q);
+const allL = await getLearn();
+const site = Astro.site!;
+const ld: object[] = [
+  {
+    '@context': 'https://schema.org', '@type': 'Article', headline: d.title, description: d.description,
+    dateModified: d.updated.toISOString(), mainEntityOfPage: new URL(Astro.url.pathname, site).href,
+    publisher: { '@type': 'Organization', name: 'PDF Fluid' },
+  },
+  breadcrumbLd(site, [{ name: 'Home', path: '/' }, { name: 'PDF Basics', path: '/learn/' }, { name: d.title, path: Astro.url.pathname }]),
+];
+if (d.faqs.length) ld.push(faqLd(d.faqs));
+---
+<Base title={d.title} description={d.description} type="article" jsonLd={ld}>
+  <div class="container">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a><span>›</span><a href="/learn/">PDF Basics</a>
+    </nav>
+    <div class="article-wrap">
+      <article data-pagefind-body>
+        <header class="article-head">
+          <h1>{d.title}</h1>
+          <div class="meta">
+            <span class="pill" style="background:var(--ink)">PDF Basics · Lesson {d.order}</span>
+            <span data-pagefind-ignore>Updated {fmtDate(d.updated)}</span>
+          </div>
+        </header>
+        <div class="answer-box">
+          <strong class="label">In short</strong>
+          <p>{d.summary}</p>
+        </div>
+        <div class="prose">
+          <Content />
+        </div>
+        <Faq faqs={d.faqs} />
+        <div class="grid" style="margin-top:32px" data-pagefind-ignore>
+          {prev ? <a class="card" href={`/learn/${prev.id}/`}><div><p>← Previous</p><h3>{prev.data.title}</h3></div></a> : <span />}
+          {next && <a class="card" href={`/learn/${next.id}/`} style="justify-content:flex-end;text-align:right"><div><p>Next →</p><h3>{next.data.title}</h3></div></a>}
+        </div>
+        <div data-pagefind-ignore><Helpful /></div>
+      </article>
+      <aside class="sidebar" data-pagefind-ignore>
+        <div class="sticky">
+          {related.length > 0 && (
+            <div class="side-box">
+              <h3>Fix related problems</h3>
+              <ul>{related.map((q) => <li><a href={`/questions/${q.id}/`}>{q.data.title}</a></li>)}</ul>
+            </div>
+          )}
+          <div class="side-box">
+            <h3>All PDF basics</h3>
+            <ul>{allL.map((l) => <li><a href={`/learn/${l.id}/`} style={l.id === entry.id ? 'color:var(--brand)' : ''}>{l.data.order}. {l.data.title}</a></li>)}</ul>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</Base>

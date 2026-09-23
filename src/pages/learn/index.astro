@@ -1,0 +1,23 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getLearn } from '../../lib';
+const ls = await getLearn();
+---
+<Base title="PDF Basics: How PDF Files Work" description="Learn the fundamentals of PDF: what a PDF is, versions and PDF/A, fonts, images, OCR, compression, security, forms and signatures — in plain English.">
+  <section class="page-head">
+    <div class="container">
+      <h1>PDF basics</h1>
+      <p>Short lessons that explain how PDF files work. Read them in order, or jump to what you need.</p>
+    </div>
+  </section>
+  <div class="container" style="padding: 24px 16px 56px">
+    <div class="grid">
+      {ls.map((l) => (
+        <a class="card" href={`/learn/${l.id}/`}>
+          <span class="step-num">{l.data.order}</span>
+          <div><h3>{l.data.title}</h3><p>{l.data.description}</p></div>
+        </a>
+      ))}
+    </div>
+  </div>
+</Base>

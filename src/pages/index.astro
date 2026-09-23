@@ -1,0 +1,92 @@
+---
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+import SearchBox from '../components/SearchBox.astro';
+import { SITE, CATEGORIES } from '../config';
+import { getQuestions, getLearn } from '../lib';
+
+const qs = await getQuestions();
+const ls = await getLearn();
+const popular = qs.filter((q) => q.data.popular);
+const counts = Object.fromEntries(Object.keys(CATEGORIES).map((k) => [k, qs.filter((q) => q.data.category === k).length]));
+const ld = {
+  '@context': 'https://schema.org', '@type': 'WebSite', name: SITE.name, url: Astro.site!.href,
+  potentialAction: { '@type': 'SearchAction', target: new URL('/search/?q={search_term_string}', Astro.site).href, 'query-input': 'required name=search_term_string' },
+};
+---
+<Base title={SITE.name} jsonLd={ld}>
+  <section class="hero">
+    <div class="container">
+      <h1>Every PDF problem, solved.</h1>
+      <p>Clear, step-by-step answers for compressing, converting, unlocking and fixing PDF files — plus the basics of how PDFs actually work.</p>
+      <SearchBox />
+      <div class="hero-tags">
+        <a href="/questions/how-to-compress-a-pdf/">PDF too large</a>
+        <a href="/questions/convert-pdf-to-word/">PDF to Word</a>
+        <a href="/questions/cant-copy-text-from-pdf/">Can't copy text</a>
+        <a href="/questions/merge-pdf-files/">Merge PDFs</a>
+        <a href="/questions/pdf-wont-open/">PDF won't open</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <div><h2>Popular PDF problems</h2><p>The questions people ask most.</p></div>
+        <a href="/questions/">View all →</a>
+      </div>
+      <div class="grid cols-3">
+        {popular.map((q) => {
+          const c = CATEGORIES[q.data.category];
+          return (
+            <a class="card" href={`/questions/${q.id}/`}>
+              <span class="icon-tile" style={`background:${c.color}`}><Icon name={c.icon} /></span>
+              <div><h3>{q.data.title}</h3><p>{q.data.description}</p></div>
+            </a>
+          );
+        })}
+      </div>
+    </div>
+  </section>
+
+  <section class="section alt">
+    <div class="container">
+      <div class="section-head">
+        <div><h2>Browse by topic</h2><p>Find the fix for your situation.</p></div>
+      </div>
+      <div class="grid cols-4">
+        {Object.entries(CATEGORIES).filter(([k]) => counts[k] > 0).map(([k, c]) => (
+          <a class="card cat-card" href={`/questions/#${k}`}>
+            <span class="icon-tile" style={`background:${c.color}`}><Icon name={c.icon} /></span>
+            <div><h3>{c.label}</h3><span class="count">{counts[k]} guide{counts[k] > 1 ? 's' : ''}</span></div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <div><h2>PDF basics</h2><p>Understand the format, and most problems make sense.</p></div>
+        <a href="/learn/">All lessons →</a>
+      </div>
+      <ul class="q-list">
+        {ls.slice(0, 6).map((l) => (
+          <li><a href={`/learn/${l.id}/`}><span>{l.data.order}. {l.data.title}<span class="q-sub">{l.data.description}</span></span><Icon name="arrow" size={18} /></a></li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <section class="section alt">
+    <div class="container">
+      <div class="features">
+        <div class="feature"><span class="icon-tile"><Icon name="zap" /></span><h3>Answer first</h3><p>Every guide starts with the short answer. Details follow if you need them.</p></div>
+        <div class="feature"><span class="icon-tile"><Icon name="check" /></span><h3>Works on any device</h3><p>Steps for Windows, Mac, iPhone, Android and the browser.</p></div>
+        <div class="feature"><span class="icon-tile"><Icon name="shield" /></span><h3>Privacy-minded</h3><p>We point out when a method keeps your files on your own device.</p></div>
+      </div>
+    </div>
+  </section>
+</Base>

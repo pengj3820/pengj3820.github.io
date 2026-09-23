@@ -1,0 +1,86 @@
+---
+import { render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Icon from '../../components/Icon.astro';
+import Faq from '../../components/Faq.astro';
+import Helpful from '../../components/Helpful.astro';
+import { CATEGORIES } from '../../config';
+import { getQuestions, getLearn, faqLd, breadcrumbLd, fmtDate } from '../../lib';
+
+export async function getStaticPaths() {
+  const qs = await getQuestions();
+  return qs.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const d = entry.data;
+const cat = CATEGORIES[d.category];
+const allQ = await getQuestions();
+const allL = await getLearn();
+let related = d.related.map((id) => allQ.find((q) => q.id === id)).filter((q) => !!q);
+if (related.length < 4) {
+  for (const q of allQ) {
+    if (related.length >= 5) break;
+    if (q.id !== entry.id && q.data.category === d.category && !related.includes(q)) related.push(q);
+  }
+}
+const learnLinks = d.learn.map((id) => allL.find((l) => l.id === id)).filter((l) => !!l);
+const site = Astro.site!;
+const ld: object[] = [
+  {
+    '@context': 'https://schema.org', '@type': 'Article', headline: d.title, description: d.description,
+    dateModified: d.updated.toISOString(), mainEntityOfPage: new URL(Astro.url.pathname, site).href,
+    publisher: { '@type': 'Organization', name: 'PDF Fluid' },
+  },
+  breadcrumbLd(site, [{ name: 'Home', path: '/' }, { name: 'PDF Problems', path: '/questions/' }, { name: d.title, path: Astro.url.pathname }]),
+];
+if (d.faqs.length) ld.push(faqLd(d.faqs));
+---
+<Base title={d.title} description={d.description} type="article" jsonLd={ld}>
+  <div class="container">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a><span>›</span><a href="/questions/">PDF Problems</a><span>›</span><a href={`/questions/#${d.category}`}>{cat?.label}</a>
+    </nav>
+    <div class="article-wrap">
+      <article data-pagefind-body>
+        <header class="article-head">
+          <h1>{d.title}</h1>
+          <div class="meta">
+            {cat && <a class="pill" style={`background:${cat.color}`} href={`/questions/#${d.category}`}><Icon name={cat.icon} size={14} />{cat.label}</a>}
+            <span data-pagefind-ignore>Updated {fmtDate(d.updated)}</span>
+          </div>
+        </header>
+        <div class="answer-box">
+          <strong class="label">Quick answer</strong>
+          <p>{d.answer}</p>
+        </div>
+        <div class="prose">
+          <Content />
+        </div>
+        <Faq faqs={d.faqs} />
+        <div data-pagefind-ignore><Helpful /></div>
+      </article>
+      <aside class="sidebar" data-pagefind-ignore>
+        <div class="sticky">
+          {related.length > 0 && (
+            <div class="side-box">
+              <h3>Related problems</h3>
+              <ul>{related.slice(0, 5).map((q) => <li><a href={`/questions/${q.id}/`}>{q.data.title}</a></li>)}</ul>
+            </div>
+          )}
+          {learnLinks.length > 0 && (
+            <div class="side-box">
+              <h3>Understand the basics</h3>
+              <ul>{learnLinks.map((l) => <li><a href={`/learn/${l.id}/`}>{l.data.title}</a></li>)}</ul>
+            </div>
+          )}
+          <div class="side-box cta">
+            <h3>Still stuck?</h3>
+            <p>Search all our PDF guides by describing your problem.</p>
+            <a class="btn primary" href="/search/">Search guides</a>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</Base>

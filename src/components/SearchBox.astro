@@ -1,0 +1,9 @@
+---
+import Icon from './Icon.astro';
+interface Props { placeholder?: string }
+const { placeholder = 'Describe your PDF problem…' } = Astro.props;
+---
+<form class="search-box" action="/search/" method="get" role="search">
+  <input type="search" name="q" placeholder={placeholder} aria-label="Search PDF problems" autocomplete="off" />
+  <button type="submit"><Icon name="search" size={20} /><span>Search</span></button>
+</form>

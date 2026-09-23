@@ -1,0 +1,36 @@
+---
+import Base from '../../layouts/Base.astro';
+import Icon from '../../components/Icon.astro';
+import SearchBox from '../../components/SearchBox.astro';
+import { CATEGORIES } from '../../config';
+import { getQuestions } from '../../lib';
+
+const qs = await getQuestions();
+const cats = Object.entries(CATEGORIES).map(([k, c]) => ({ key: k, ...c, items: qs.filter((q) => q.data.category === k) })).filter((c) => c.items.length);
+---
+<Base title="Common PDF Problems and How to Fix Them" description="A complete list of common PDF problems — file too large, can't edit, can't copy text, won't open, forgotten password — with step-by-step fixes.">
+  <section class="page-head">
+    <div class="container">
+      <h1>PDF problems & fixes</h1>
+      <p>Pick your problem below, or describe it in the search box.</p>
+      <div style="margin-top:20px"><SearchBox /></div>
+    </div>
+  </section>
+  <div class="container">
+    <nav class="chips" aria-label="Topics">
+      {cats.map((c) => <a href={`#${c.key}`}>{c.label}</a>)}
+    </nav>
+    <div style="padding: 8px 0 48px">
+      {cats.map((c) => (
+        <section class="cat-block" id={c.key}>
+          <h2><span class="icon-tile" style={`background:${c.color}`}><Icon name={c.icon} size={18} /></span>{c.label}</h2>
+          <ul class="q-list">
+            {c.items.map((q) => (
+              <li><a href={`/questions/${q.id}/`}><span>{q.data.title}<span class="q-sub">{q.data.description}</span></span><Icon name="arrow" size={18} /></a></li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+  </div>
+</Base>

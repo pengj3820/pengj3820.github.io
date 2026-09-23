@@ -1,0 +1,23 @@
+---
+---
+<div class="helpful" data-helpful>
+  <p class="ask">Was this page helpful?</p>
+  <div class="btns">
+    <button class="btn" data-vote="yes">👍 Yes</button>
+    <button class="btn" data-vote="no">👎 No</button>
+  </div>
+  <p class="thanks">Thanks for the feedback!</p>
+</div>
+<script>
+  document.querySelectorAll<HTMLElement>('[data-helpful]').forEach((box) => {
+    box.querySelectorAll<HTMLButtonElement>('button[data-vote]').forEach((b) => {
+      b.addEventListener('click', () => {
+        const gtag = (window as any).gtag;
+        if (gtag) gtag('event', 'page_feedback', { helpful: b.dataset.vote, page_path: location.pathname });
+        (box.querySelector('.ask') as HTMLElement).style.display = 'none';
+        (box.querySelector('.btns') as HTMLElement).style.display = 'none';
+        (box.querySelector('.thanks') as HTMLElement).style.display = 'block';
+      });
+    });
+  });
+</script>
