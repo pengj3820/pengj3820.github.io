@@ -5,7 +5,7 @@ export const SITE = {
   description:
     'Learn how PDF files work and fix common PDF problems: compress large PDFs, unlock, convert, merge, fix fonts and more. Free, clear, step-by-step guides.',
   // Google Analytics 4 Measurement ID, e.g. 'G-XXXXXXXXXX'. Leave empty to disable tracking.
-  gaId: '',
+  gaId: 'G-9PCRLE6VN7',
 };
 
 export const CATEGORIES: Record<string, { label: string; color: string; icon: string }> = {
