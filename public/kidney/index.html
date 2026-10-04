@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>肾脏是怎么工作的？</title>
+<meta name="description" content="给小学生看的动画小视频：肾脏怎样过滤血液、把有用的东西捡回来、产生尿液，以及怎样保护肾。">
+<style>
+:root{--bg:#f6f2ea;--fg:#2b2b2b;--card:#ffffff;--muted:#666;--accent:#d9534f;--line:#e4ddd0}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#1c1c1e;--fg:#ececec;--card:#2a2a2d;--muted:#a8a8a8;--line:#3a3a3d}}
+:root[data-theme="dark"]{--bg:#1c1c1e;--fg:#ececec;--card:#2a2a2d;--muted:#a8a8a8;--line:#3a3a3d}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Noto Sans SC","WenQuanYi Zen Hei",sans-serif;line-height:1.6}
+main{max-width:1040px;margin:0 auto;padding:16px}
+h1{font-size:1.5rem;margin:.4em 0 .6em}
+.player{border-radius:14px;overflow:hidden;background:#000;box-shadow:0 6px 24px rgba(0,0,0,.15)}
+canvas{display:block;width:100%;height:auto;aspect-ratio:16/9;cursor:pointer}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 12px;background:var(--card);border-top:1px solid var(--line)}
+.controls button,.controls select{font:inherit;font-size:15px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:8px;padding:6px 12px;cursor:pointer}
+#play{background:var(--accent);color:#fff;border:none;min-width:84px}
+#seek{flex:1 1 200px;accent-color:var(--accent)}
+#time{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px}
+label.voice{display:flex;gap:6px;align-items:center;font-size:15px;cursor:pointer}
+.links{margin:14px 0;display:flex;gap:16px;flex-wrap:wrap}
+.links a{color:var(--accent)}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-top:12px}
+summary{cursor:pointer;font-weight:bold}
+#script h3{margin:1em 0 .2em;font-size:1rem}
+#script p{margin:.2em 0;color:var(--fg)}
+body.record{background:#000}
+body.record main{padding:0;max-width:none}
+body.record .controls,body.record h1,body.record .links,body.record details{display:none}
+body.record .player{border-radius:0;box-shadow:none}
+</style>
+</head>
+<body>
+<main>
+<h1>肾脏是怎么工作的？——给小学生的动画小视频</h1>
+<div class="player">
+  <canvas id="c" width="1280" height="720" aria-label="肾脏工作原理动画"></canvas>
+  <div class="controls">
+    <button id="play" type="button">▶ 播放</button>
+    <input id="seek" type="range" min="0" max="1000" value="0" aria-label="进度">
+    <span id="time">0:00 / 0:00</span>
+    <select id="chap" aria-label="章节"></select>
+    <label class="voice"><input id="voice" type="checkbox"> 朗读字幕</label>
+    <button id="fs" type="button">⛶ 全屏</button>
+  </div>
+</div>
+<div class="links">
+  <a href="kidney-for-kids.mp4" download>⬇ 下载 MP4 视频</a>
+</div>
+<details>
+  <summary>旁白稿（可以照着自己配音）</summary>
+  <div id="script"></div>
+</details>
+</main>
+<script>
+(function(){
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const W=1280,H=720;
+const FONT='"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Noto Sans SC","WenQuanYi Zen Hei",sans-serif';
+const PI=Math.PI;
+
+/* ---------- helpers ---------- */
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+const prog=(t,a,b)=>clamp((t-a)/(b-a));
+const ep=(t,a,b)=>ease(prog(t,a,b));
+const back=x=>{if(x<=0)return 0;if(x>=1)return 1;const c1=1.70158,c3=c1+1;return 1+c3*Math.pow(x-1,3)+c1*Math.pow(x-1,2);};
+function rnd(i){const x=Math.sin(i*127.1+311.7)*43758.5453;return x-Math.floor(x);}
+
+function bg(c1,c2){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,c1);g.addColorStop(1,c2);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);}
+function rr(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r);}
+function text(s,x,y,size,color,align='center',weight='bold'){ctx.font=`${weight} ${size}px ${FONT}`;ctx.fillStyle=color;ctx.textAlign=align;ctx.textBaseline='middle';ctx.fillText(s,x,y);}
+function outlined(s,x,y,size,color,stroke,lw){ctx.font=`bold ${size}px ${FONT}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';ctx.lineWidth=lw;ctx.strokeStyle=stroke;ctx.strokeText(s,x,y);ctx.fillStyle=color;ctx.fillText(s,x,y);}
+function pill(s,x,y,size=24,bgc='#fff',fg='#333',a=1,align='center'){
+  if(a<=0)return;ctx.save();ctx.globalAlpha*=a;ctx.font=`bold ${size}px ${FONT}`;
+  const w=ctx.measureText(s).width+size*1.2,h=size*1.75;const x0=align==='left'?x:x-w/2;
+  ctx.shadowColor='rgba(0,0,0,.15)';ctx.shadowBlur=8;ctx.shadowOffsetY=2;
+  rr(x0,y-h/2,w,h,h/2);ctx.fillStyle=bgc;ctx.fill();ctx.shadowColor='transparent';
+  text(s,x0+w/2,y+1,size,fg);ctx.restore();return w;}
+function arrow(x1,y1,x2,y2,color='#555',w=4,a=1){
+  if(a<=0)return;ctx.save();ctx.globalAlpha*=a;ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=w;ctx.lineCap='round';
+  const ang=Math.atan2(y2-y1,x2-x1),hl=w*3.5;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2-Math.cos(ang)*hl*.8,y2-Math.sin(ang)*hl*.8);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-hl*Math.cos(ang-.45),y2-hl*Math.sin(ang-.45));ctx.lineTo(x2-hl*Math.cos(ang+.45),y2-hl*Math.sin(ang+.45));ctx.closePath();ctx.fill();ctx.restore();}
+
+/* polyline paths */
+function mkPath(pts){const cum=[0];for(let i=1;i<pts.length;i++)cum.push(cum[i-1]+Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]));return{pts,cum,L:cum[cum.length-1]};}
+function at(p,f){const d=clamp(f)*p.L;let i=1;while(i<p.cum.length-1&&p.cum[i]<d)i++;const s=(d-p.cum[i-1])/((p.cum[i]-p.cum[i-1])||1);return[lerp(p.pts[i-1][0],p.pts[i][0],s),lerp(p.pts[i-1][1],p.pts[i][1],s)];}
+function strokePath(p,w,color){ctx.lineWidth=w;ctx.strokeStyle=color;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();p.pts.forEach((q,i)=>i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.stroke();}
+function tube(p,w,fill,edge){strokePath(p,w+6,edge);strokePath(p,w,fill);}
+
+/* ---------- characters & icons ---------- */
+function kidneyPath(){ctx.beginPath();ctx.moveTo(0,-1);ctx.bezierCurveTo(.85,-1.05,.9,1.05,0,1);ctx.bezierCurveTo(-.45,1,-.62,.55,-.3,.25);ctx.quadraticCurveTo(-.1,0,-.3,-.25);ctx.bezierCurveTo(-.62,-.55,-.45,-1,0,-1);ctx.closePath();}
+function drawKidney(x,y,s,o={}){
+  if(s<=0)return;const flip=o.flip?-1:1;
+  ctx.save();ctx.translate(x,y);if(o.rot)ctx.rotate(o.rot);ctx.scale(flip*s,s);
+  kidneyPath();ctx.fillStyle='#c9524c';ctx.fill();ctx.lineWidth=.045;ctx.strokeStyle='#86302c';ctx.stroke();
+  if(o.inner){
+    ctx.save();ctx.translate(.12,0);ctx.scale(.72,.8);kidneyPath();ctx.fillStyle='#e9907f';ctx.fill();ctx.restore();
+    ctx.fillStyle='#c4594d';
+    for(let k=0;k<6;k++){const a=-1.05+k*.42,cx=-.2,b1=a-.13,b2=a+.13;
+      ctx.beginPath();ctx.moveTo(cx+.26*Math.cos(a),.26*Math.sin(a)*1.4);
+      ctx.lineTo(cx+.62*Math.cos(b1),.62*Math.sin(b1)*1.4);ctx.lineTo(cx+.62*Math.cos(b2),.62*Math.sin(b2)*1.4);ctx.closePath();ctx.fill();}
+    ctx.beginPath();ctx.ellipse(-.17,0,.13,.32,0,0,PI*2);ctx.fillStyle='#f3d27a';ctx.fill();
+  }
+  ctx.beginPath();ctx.ellipse(.32,-.5,.1,.24,-.35,0,PI*2);ctx.fillStyle='rgba(255,255,255,.28)';ctx.fill();
+  ctx.restore();
+  if(o.face)drawFace(x+flip*.13*s,y-.05*s,s*.5,o.t||0,o.mood);
+}
+function drawFace(x,y,s,t,mood){
+  const blink=((t+x*.01)%3.7)<.13?.12:1;
+  for(const dx of[-.34,.34]){
+    ctx.beginPath();ctx.ellipse(x+dx*s,y-.1*s,.19*s,.21*s*blink,0,0,PI*2);ctx.fillStyle='#fff';ctx.fill();
+    if(blink>.5){ctx.beginPath();ctx.arc(x+dx*s+.03*s,y-.07*s,.1*s,0,PI*2);ctx.fillStyle='#222';ctx.fill();
+      ctx.beginPath();ctx.arc(x+dx*s+.06*s,y-.11*s,.035*s,0,PI*2);ctx.fillStyle='#fff';ctx.fill();}
+  }
+  ctx.lineWidth=.07*s;ctx.strokeStyle='#5a1d1a';ctx.lineCap='round';ctx.beginPath();
+  if(mood==='wow'){ctx.ellipse(x,y+.25*s,.1*s,.12*s,0,0,PI*2);ctx.fillStyle='#5a1d1a';ctx.fill();}
+  else{ctx.arc(x,y+.12*s,.24*s,.18*PI,.82*PI);ctx.stroke();}
+  ctx.fillStyle='rgba(255,150,160,.6)';
+  for(const dx of[-.58,.58]){ctx.beginPath();ctx.ellipse(x+dx*s,y+.18*s,.12*s,.07*s,0,0,PI*2);ctx.fill();}
+}
+function drop(x,y,r,fill,edge){ctx.beginPath();ctx.moveTo(x,y-1.9*r);ctx.lineTo(x+.866*r,y-.5*r);ctx.arc(x,y,r,-PI/6,PI+PI/6);ctx.closePath();ctx.fillStyle=fill;ctx.fill();if(edge){ctx.lineWidth=Math.max(1.5,r*.15);ctx.strokeStyle=edge;ctx.stroke();}}
+const SIZE={rbc:16,protein:16,water:9,sugar:8,salt:7,waste:9};
+function particle(type,x,y,k=1){
+  const r=SIZE[type]*k;ctx.save();
+  switch(type){
+    case'rbc':ctx.beginPath();ctx.arc(x,y,r,0,PI*2);ctx.fillStyle='#e53935';ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='#b71c1c';ctx.stroke();
+      ctx.beginPath();ctx.arc(x,y,r*.5,0,PI*2);ctx.fillStyle='rgba(150,15,15,.45)';ctx.fill();break;
+    case'protein':ctx.fillStyle='#8e7cc3';ctx.strokeStyle='#5e4b9a';ctx.lineWidth=2;
+      for(let k2=0;k2<6;k2++){const a=k2*PI/3;ctx.beginPath();ctx.arc(x+Math.cos(a)*r*.5,y+Math.sin(a)*r*.5,r*.5,0,PI*2);ctx.fill();ctx.stroke();}
+      ctx.beginPath();ctx.arc(x,y,r*.55,0,PI*2);ctx.fill();break;
+    case'water':drop(x,y+r*.3,r,'#4fc3f7','#0288d1');break;
+    case'sugar':rr(x-r,y-r,2*r,2*r,r*.35);ctx.fillStyle='#fffdf3';ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='#e6a100';ctx.stroke();break;
+    case'salt':rr(x-r,y-r,2*r,2*r,2);ctx.fillStyle='#eceff1';ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='#607d8b';ctx.stroke();break;
+    case'waste':ctx.beginPath();for(let k2=0;k2<16;k2++){const a=k2*PI/8,rad=k2%2?r*.8:r*1.25;ctx.lineTo(x+Math.cos(a)*rad,y+Math.sin(a)*rad);}
+      ctx.closePath();ctx.fillStyle='#7d6b3d';ctx.fill();ctx.lineWidth=1.5;ctx.strokeStyle='#4e4222';ctx.stroke();
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x-r*.3,y-r*.15,r*.18,0,PI*2);ctx.arc(x+r*.3,y-r*.15,r*.18,0,PI*2);ctx.fill();break;
+    case'urine':drop(x,y+r*.3,r,'#f6c945','#c99a00');break;
+  }
+  ctx.restore();
+}
+function heart(x,y,s,color){ctx.beginPath();ctx.moveTo(x,y+s*.35);ctx.bezierCurveTo(x-s*1.1,y-s*.35,x-s*.45,y-s*1.05,x,y-s*.45);ctx.bezierCurveTo(x+s*.45,y-s*1.05,x+s*1.1,y-s*.35,x,y+s*.35);ctx.fillStyle=color;ctx.fill();}
+function toilet(x,y,k=1){ctx.save();ctx.translate(x,y);ctx.scale(k,k);ctx.lineWidth=4;ctx.strokeStyle='#78909c';ctx.fillStyle='#fff';
+  rr(-20,-70,70,48,8);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-45,-20);ctx.lineTo(45,-20);ctx.quadraticCurveTo(40,25,10,30);ctx.lineTo(15,55);ctx.lineTo(-25,55);ctx.lineTo(-20,30);ctx.quadraticCurveTo(-45,20,-45,-20);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.ellipse(0,-20,47,10,0,0,PI*2);ctx.fillStyle='#e3f2fd';ctx.fill();ctx.stroke();ctx.restore();}
+function cup(x,y,k=1){ctx.save();ctx.translate(x,y);ctx.scale(k,k);ctx.lineWidth=4;ctx.strokeStyle='#4f9fd8';
+  ctx.beginPath();ctx.moveTo(-30,-38);ctx.lineTo(30,-38);ctx.lineTo(22,38);ctx.lineTo(-22,38);ctx.closePath();ctx.fillStyle='#eef7ff';ctx.fill();
+  ctx.save();ctx.clip();ctx.fillStyle='#81d4fa';ctx.fillRect(-40,-12,80,60);ctx.restore();ctx.stroke();ctx.restore();}
+function bone(x,y,k=1){ctx.save();ctx.translate(x,y);ctx.scale(k,k);ctx.rotate(-.5);ctx.fillStyle='#fffaf0';ctx.strokeStyle='#bfae8f';ctx.lineWidth=3;
+  ctx.beginPath();ctx.roundRect(-28,-7,56,14,6);ctx.fill();ctx.stroke();
+  for(const[a,b]of[[-30,-8],[-30,8],[30,-8],[30,8]]){ctx.beginPath();ctx.arc(a,b,9,0,PI*2);ctx.fill();ctx.stroke();}
+  ctx.beginPath();ctx.roundRect(-27,-6,54,12,6);ctx.fill();ctx.restore();}
+function card(x,y,w,h,a,hl){if(a<=0)return false;ctx.save();ctx.globalAlpha*=a;ctx.shadowColor='rgba(0,0,0,.12)';ctx.shadowBlur=14;ctx.shadowOffsetY=4;
+  rr(x,y,w,h,22);ctx.fillStyle='#fff';ctx.fill();ctx.shadowColor='transparent';if(hl){ctx.lineWidth=5;ctx.strokeStyle='#f0a35e';ctx.stroke();}ctx.restore();return true;}
+
+/* ---------- scenes ---------- */
+const scenes=[
+{title:'肾脏兄弟',dur:9,subs:[[0,'大家好！我们是肾脏兄弟！'],[3.5,'今天带你看看：我们是怎么工作的？']],
+ draw(t){bg('#bfe6ff','#fff4e0');
+  for(let i=0;i<14;i++){const x=(rnd(i)*W+t*20*(rnd(i+3)-.5))%W,y=H-((t*30*(.5+rnd(i+7))+rnd(i+1)*H)%H);ctx.beginPath();ctx.arc(x,y,6+rnd(i+9)*12,0,PI*2);ctx.fillStyle='rgba(255,255,255,.55)';ctx.fill();}
+  const p1=back(prog(t,.2,1.1)),p2=back(prog(t,.45,1.35));
+  drawKidney(500,340+Math.sin(t*3)*8,115*p1,{flip:true,face:true,t,rot:Math.sin(t*2)*.05});
+  drawKidney(780,340+Math.sin(t*3+1.5)*8,115*p2,{face:true,t:t+1,rot:-Math.sin(t*2)*.05});
+  ctx.save();ctx.globalAlpha=ep(t,.6,1.4);outlined('肾脏是怎么工作的？',640,118,70,'#c0392b','#fff',12);ctx.restore();
+  ctx.save();ctx.globalAlpha=ep(t,1.4,2.2);pill('身体里的小小净水厂',640,535,34,'#fff','#2c6e9e');ctx.restore();
+ }},
+{title:'肾在哪里？',dur:15,subs:[[0,'肾在身体的哪里呢？'],[3,'我们有两个肾，藏在后背、腰的上面一点，'],[6.5,'一边一个，就在脊柱的两边。'],[9.5,'每个肾和你的拳头差不多大，'],[12,'形状像一颗大蚕豆。']],
+ draw(t){bg('#e8f6ff','#fdf6ec');const cx=400,a=ep(t,0,.8);
+  ctx.save();ctx.globalAlpha=a;
+  ctx.fillStyle='#3f6fb5';rr(cx-82,400,72,180,30);ctx.fill();rr(cx+10,400,72,180,30);ctx.fill();
+  ctx.fillStyle='#f1c19b';rr(cx-152,195,46,200,23);ctx.fill();rr(cx+106,195,46,200,23);ctx.fill();
+  ctx.fillStyle='#f6b26b';rr(cx-154,185,50,90,24);ctx.fill();rr(cx+104,185,50,90,24);ctx.fill();
+  ctx.fillStyle='#f1c19b';rr(cx-20,160,40,32,8);ctx.fill();
+  ctx.fillStyle='#f6b26b';rr(cx-112,180,224,245,50);ctx.fill();
+  ctx.beginPath();ctx.arc(cx-58,122,13,0,PI*2);ctx.arc(cx+58,122,13,0,PI*2);ctx.fillStyle='#f1c19b';ctx.fill();
+  ctx.beginPath();ctx.arc(cx,118,60,0,PI*2);ctx.fillStyle='#4a3426';ctx.fill();
+  ctx.restore();
+  const xr=ep(t,1.2,2.4);
+  if(xr>0){ctx.save();ctx.globalAlpha=xr;rr(cx-96,195,192,215,40);ctx.fillStyle='rgba(255,243,234,.95)';ctx.fill();
+    for(let k=0;k<10;k++){rr(cx-11,198+k*21,22,17,5);ctx.fillStyle='#f3ead8';ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='#c9b89a';ctx.stroke();}
+    ctx.restore();}
+  const pk=back(prog(t,2.6,3.5)),glow=t>3&&t<9?.5+.5*Math.sin(t*6):0;
+  if(glow>0){ctx.save();ctx.globalAlpha=glow*.6;ctx.fillStyle='#ffd54f';ctx.beginPath();ctx.ellipse(cx-52,300,40,58,0,0,PI*2);ctx.ellipse(cx+52,310,40,58,0,0,PI*2);ctx.fill();ctx.restore();}
+  drawKidney(cx-52,300,42*pk,{flip:true});drawKidney(cx+52,310,42*pk,{});
+  if(xr>0){ctx.save();ctx.globalAlpha=xr*.75;ctx.strokeStyle='#d9c9ab';ctx.lineWidth=6;ctx.lineCap='round';
+    for(let k=0;k<5;k++){const y=208+k*21;for(const d of[-1,1]){ctx.beginPath();ctx.moveTo(cx+d*13,y);ctx.quadraticCurveTo(cx+d*78,y-6,cx+d*88,y+30);ctx.stroke();}}ctx.restore();}
+  const la=ep(t,3,3.6);pill('肾',cx+235,300,28,'#c9524c','#fff',la);arrow(cx+212,302,cx+86,310,'#c9524c',4,la);
+  const sa=ep(t,6.5,7.1);pill('脊柱',cx-235,250,26,'#fff','#7a6a4f',sa);arrow(cx-200,252,cx-16,262,'#a08c68',4,sa);
+  const cards=[[3,'两个','左边一个，右边一个'],[6.5,'在后腰','脊柱两边，肋骨下面'],[9.5,'拳头那么大','和你的拳头差不多'],[12,'像蚕豆','一边鼓鼓的，一边凹进去']];
+  cards.forEach(([t0,a1,b1],i)=>{const e=ep(t,t0,t0+.6);const x=720+(1-e)*60,y=105+i*122;
+    if(card(x,y,480,104,e,t>=t0&&(i===3||t<cards[i+1][0]))){ctx.save();ctx.globalAlpha*=e;
+      ctx.beginPath();ctx.arc(x+55,y+52,32,0,PI*2);ctx.fillStyle='#fde3df';ctx.fill();
+      if(i===0){text('2',x+55,y+54,40,'#c9524c');}
+      else if(i===1){ctx.fillStyle='#d9c9ab';rr(x+51,y+28,8,48,3);ctx.fill();drawKidney(x+40,y+50,13,{flip:true});drawKidney(x+70,y+54,13,{});}
+      else if(i===2){ctx.fillStyle='#f1c19b';rr(x+33,y+33,44,38,12);ctx.fill();ctx.strokeStyle='#c98f66';ctx.lineWidth=2;for(let f=0;f<3;f++){ctx.beginPath();ctx.moveTo(x+44+f*11,y+35);ctx.lineTo(x+44+f*11,y+52);ctx.stroke();}}
+      else{drawKidney(x+55,y+52,22,{});}
+      text(a1,x+108,y+36,32,'#333','left');text(b1,x+108,y+74,22,'#777','left','normal');ctx.restore();}});
+ }},
+{title:'身体里的“垃圾”',dur:14,subs:[[0,'我们的身体就像一座忙碌的城市，'],[3.5,'每个细胞都在努力工作，也会产生“垃圾”。'],[7.5,'这些垃圾会跑进血液里，'],[10,'需要有人把它们清理出去——这就是肾的工作！']],
+ draw(t){bg('#fff7e6','#ffe9e0');
+  rr(-30,385,1140,72,36);ctx.fillStyle='#f8c0bd';ctx.fill();ctx.lineWidth=5;ctx.strokeStyle='#e57373';ctx.stroke();
+  text('血液',70,360,26,'#c62828');
+  for(let i=0;i<16;i++){const x=((t*110+i*75)%1200)-60;if(x<1090)particle('rbc',x,421+Math.sin(i*2.1)*16,.9);}
+  const cells=[230,520,810];
+  cells.forEach((cx,j)=>{const sc=back(prog(t,.2+j*.25,1+j*.25));if(sc<=0)return;const y=210+Math.sin(t*4+j)*4;
+    ctx.save();ctx.translate(cx,y);ctx.scale(sc,sc);ctx.beginPath();ctx.arc(0,0,64,0,PI*2);ctx.fillStyle='#ffe0b2';ctx.fill();ctx.lineWidth=5;ctx.strokeStyle='#f0a35e';ctx.stroke();
+    ctx.beginPath();ctx.arc(22,-20,20,0,PI*2);ctx.fillStyle='#ce93d8';ctx.fill();drawFace(-8,10,40,t+j,'');
+    if(t>3.5){drop(48,-46,7,'#81d4fa');}ctx.restore();});
+  ctx.save();ctx.globalAlpha=ep(t,.5,1.2);pill('努力工作的细胞',520,90,26,'#fff','#b26a1f');ctx.restore();
+  for(let j=0;j<3;j++)for(let n=0;n<12;n++){const t0=3.5+j*.4+n*(n<3?1.3:.75);const dt=t-t0;if(dt<0)continue;const id=j*50+n;
+    const sx=cells[j]+(rnd(id)-.5)*40,ty=421+(rnd(id+1)-.5)*36;let x,y;
+    if(dt<1.1){x=sx;y=lerp(275,ty,dt*dt/1.21);}else{x=sx+(dt-1.1)*110;y=ty;}
+    if(x<1085)particle('waste',x,y,1.1);}
+  drawKidney(1140,421,115,{face:true,t,mood:t>10?'':'wow'});
+  const ka=ep(t,10,10.6);pill('肾来清理！',1120,270,28,'#c9524c','#fff',ka);
+  ctx.save();ctx.globalAlpha=ep(t,7.5,8.1);pill('垃圾',360,500,24,'#7d6b3d','#fff');particle('waste',420,500,1.2);ctx.restore();
+ }},
+{title:'血液进肾，洗干净再出来',dur:14,subs:[[0,'血液从“肾动脉”流进肾里，'],[3.5,'肾把它洗干净，再从“肾静脉”送回身体。'],[7.5,'肾每天要过滤大约180升液体，'],[10.5,'差不多能装满一个大浴缸！']],
+ draw(t){bg('#fff8f0','#fdeee8');
+  const art=mkPath([[700,215],[560,215],[470,318],[372,320]]),vein=mkPath([[372,345],[480,345],[700,345]]),ure=mkPath([[368,372],[430,410],[450,520],[450,600]]);
+  tube(art,24,'#ef5350','#b71c1c');tube(vein,24,'#7986cb','#3949ab');tube(ure,14,'#f6d36a','#c99a00');
+  drawKidney(330,350,165,{flip:true,inner:true});
+  for(let i=0;i<10;i++){const f=(t*.35+i/10)%1;const[x,y]=at(art,f);particle(i%3===1?'waste':'rbc',x,y,i%3===1?.75:.55);}
+  for(let i=0;i<9;i++){const f=(t*.35+i/9)%1;const[x,y]=at(vein,f);particle('rbc',x,y,.55);}
+  for(let i=0;i<5;i++){const f=(t*.25+i/5)%1;const[x,y]=at(ure,f);particle('urine',x,y,.65);}
+  pill('肾动脉：脏血流进来',725,215,24,'#ffebee','#b71c1c',ep(t,.4,1),'left');
+  pill('肾静脉：干净的血出去',725,345,24,'#e8eaf6','#283593',ep(t,3.5,4.1),'left');
+  pill('输尿管：尿液流走',475,560,24,'#fff8e1','#8a6d00',ep(t,5.5,6.1),'left');
+  const ta=ep(t,7.3,7.9);if(ta>0){ctx.save();ctx.globalAlpha=ta;const lv=ep(t,7.6,12.4);
+    ctx.fillStyle='#90a4ae';rr(1150,372,14,62,6);ctx.fill();rr(1110,366,54,14,7);ctx.fill();
+    if(t>7.6&&t<12.4){ctx.fillStyle='#81d4fa';ctx.fillRect(1113,380,8,200-lv*110);}
+    ctx.save();rr(820,450,370,135,[8,8,60,60]);ctx.clip();ctx.fillStyle='#fff';ctx.fillRect(800,440,400,160);
+    ctx.fillStyle='#81d4fa';ctx.fillRect(800,585-lv*128,400,140);ctx.restore();
+    rr(820,450,370,135,[8,8,60,60]);ctx.lineWidth=6;ctx.strokeStyle='#90a4ae';ctx.stroke();rr(805,438,400,18,9);ctx.fillStyle='#cfd8dc';ctx.fill();
+    ctx.fillStyle='#90a4ae';ctx.beginPath();ctx.arc(870,595,12,0,PI*2);ctx.arc(1140,595,12,0,PI*2);ctx.fill();
+    outlined(Math.round(180*lv)+' 升',1000,402,46,'#0277bd','#fff',8);ctx.restore();}
+ }},
+{title:'肾里的小小过滤器',dur:14.5,subs:[[0,'我们把肾放大看看……'],[3,'里面藏着很多超级小的过滤器，叫做“肾单位”。'],[7,'每个肾里大约有100万个！'],[10,'每个肾单位都有一个“小筛子”和一根“长管子”。']],
+ draw(t){bg('#f3f8ff','#fff3ea');
+  drawKidney(260,330,150,{flip:true,inner:true});
+  const z=ep(t,.5,2.4),R=240*z,mx=830,my=330,sx=172,sy=270;
+  if(z>0){ctx.save();ctx.globalAlpha=.25*z;ctx.fillStyle='#ffd180';ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(mx-R*.2,my-R*.98);ctx.lineTo(mx-R*.2,my+R*.98);ctx.closePath();ctx.fill();ctx.restore();
+    ctx.beginPath();ctx.arc(sx,sy,12,0,PI*2);ctx.lineWidth=4;ctx.strokeStyle='#ff9800';ctx.stroke();
+    ctx.save();ctx.beginPath();ctx.arc(mx,my,R,0,PI*2);ctx.fillStyle='#fff8ee';ctx.fill();ctx.clip();ctx.translate(mx,my);ctx.scale(z,z);
+    const draw=prog(t,2,6);
+    ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.strokeStyle='#e53935';ctx.lineWidth=12;ctx.beginPath();ctx.moveTo(-260,-150);ctx.lineTo(-150,-100);ctx.stroke();
+    ctx.strokeStyle='#ef9a9a';ctx.beginPath();ctx.moveTo(-150,-55);ctx.lineTo(-250,-10);ctx.stroke();
+    const pts=[[-72,-70]];for(let x=-70;x<=20;x+=2)pts.push([x,-72+16*Math.sin((x+70)/9)]);
+    pts.push([40,-40],[42,170]);for(let a=0;a<=PI;a+=.2)pts.push([65-23*Math.cos(a),170+24*Math.sin(a)]);
+    pts.push([88,-30]);for(let x=90;x<=150;x+=2)pts.push([x,-50+12*Math.sin((x-90)/8)]);pts.push([168,-60]);
+    const tp=mkPath(pts);const n=Math.max(2,Math.floor(pts.length*draw));
+    ctx.strokeStyle='#d9a400';ctx.lineWidth=20;ctx.beginPath();ctx.moveTo(176,-260);ctx.lineTo(176,260);ctx.stroke();
+    ctx.strokeStyle='#ffe082';ctx.lineWidth=14;ctx.stroke();
+    if(draw>0){ctx.beginPath();for(let i=0;i<n;i++)i?ctx.lineTo(pts[i][0],pts[i][1]):ctx.moveTo(pts[i][0],pts[i][1]);ctx.strokeStyle='#d9a400';ctx.lineWidth=18;ctx.stroke();ctx.strokeStyle='#ffe082';ctx.lineWidth=12;ctx.stroke();}
+    ctx.beginPath();ctx.arc(-120,-80,54,0,PI*2);ctx.fillStyle='#fffbe6';ctx.fill();ctx.lineWidth=9;ctx.strokeStyle='#e0b000';ctx.stroke();
+    ctx.beginPath();for(let u=0;u<=PI*2+.01;u+=.04){const r=36*Math.sin(3*u)*Math.cos(u*.5+t*.3);ctx.lineTo(-120+r*Math.cos(u),-80+r*Math.sin(u));}
+    ctx.strokeStyle='#d32f2f';ctx.lineWidth=6;ctx.stroke();
+    ctx.beginPath();for(let u=0;u<=PI*2+.01;u+=.04){const r=30*Math.sin(2*u+1);ctx.lineTo(-120+r*Math.cos(u),-80+r*Math.sin(u));}ctx.stroke();
+    if(t>6){for(let i=0;i<6;i++){const f=(t*.12+i/6)%1;const[x,y]=at(tp,f);particle(i%3?'water':'waste',x,y,.8);}}
+    ctx.restore();
+    ctx.beginPath();ctx.arc(mx,my,R,0,PI*2);ctx.lineWidth=14;ctx.strokeStyle='#5d4037';ctx.stroke();
+    ctx.save();ctx.globalAlpha=z;ctx.strokeStyle='#5d4037';ctx.lineWidth=26;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(mx+R*.72,my+R*.72);ctx.lineTo(mx+R*.72+80,my+R*.72+80);ctx.stroke();ctx.restore();}
+  pill('肾单位',mx,72,26,'#5d4037','#fff',ep(t,3,3.6));
+  pill('小筛子：肾小球',mx-120,my-180,22,'#fff','#c62828',ep(t,10,10.5));
+  pill('长管子：肾小管',mx-110,my+120,22,'#fff','#8a6d00',ep(t,11,11.5));
+  const ca=ep(t,6.8,7.3);if(ca>0){ctx.save();ctx.globalAlpha=ca;const num=Math.round(1e6*ep(t,7,9.5));
+    outlined('约 '+num.toLocaleString('en-US')+' 个',260,545,44,'#c0392b','#fff',8);text('每个肾里的肾单位',260,592,22,'#666');ctx.restore();}
+ }},
+{title:'第一步：过滤',dur:18,subs:[[0,'第一步：过滤。'],[2,'“肾小球”就像一个特别细的筛子。'],[5.5,'红细胞和蛋白质个子大，钻不过去，留在血液里；'],[10.5,'水、糖、盐和垃圾个子小，都能钻过去，'],[14,'变成“原尿”，流进肾小管。']],
+ draw(t){bg('#fffaf3','#f3f6ff');
+  rr(80,140,1120,150,20);ctx.fillStyle='#fde0e0';ctx.fill();ctx.lineWidth=4;ctx.strokeStyle='#e57373';ctx.stroke();
+  rr(80,304,1120,140,20);ctx.fillStyle='#fff6d6';ctx.fill();ctx.strokeStyle='#f0b429';ctx.stroke();
+  text('血液 →',150,165,22,'#c62828');text('原尿 →',150,420,22,'#a07800');
+  const holes=[];for(let k=0;k<10;k++)holes.push(330+75*k);
+  ctx.fillStyle='#78909c';let x0=80;for(const hx of holes){rr(x0,288,hx-15-x0,16,6);ctx.fill();x0=hx+15;}rr(x0,288,1200-x0,16,6);ctx.fill();
+  pill('筛子（肾小球）',1080,296,20,'#546e7a','#fff',ep(t,2,2.5));
+  ctx.save();rr(80,140,1120,304,20);ctx.clip();
+  const types=['rbc','rbc','protein','water','water','water','sugar','salt','waste','waste'];
+  for(let i=0;i<80;i++){const t0=1+i*.21,dt=t-t0;if(dt<0)break;const ty=types[Math.floor(rnd(i)*types.length)];const v=105;let x,y;
+    if(ty==='rbc'||ty==='protein'){x=60+v*dt;y=252+6*Math.sin(dt*7+i);}
+    else{const hx=holes[Math.floor(rnd(i+500)*10)],ta=(hx-60)/v,y0=170+rnd(i+77)*90,y1=345+rnd(i+33)*80;
+      if(dt<ta){x=60+v*dt;y=y0;}else if(dt<ta+.9){x=hx;y=lerp(y0,y1,ease((dt-ta)/.9));}else{x=hx+v*(dt-ta-.9);y=y1;}}
+    if(x<1220)particle(ty,x,y);}
+  ctx.restore();
+  ctx.save();ctx.globalAlpha=ep(t,5.5,6.1);outlined('大个子：过不去！',390,108,32,'#c62828','#fff',7);ctx.restore();
+  ctx.save();ctx.globalAlpha=ep(t,10.5,11.1);outlined('小个子：钻过去！',900,108,32,'#0277bd','#fff',7);ctx.restore();
+  const g1=ep(t,5.5,6.1);if(card(90,470,470,130,g1,t>=5.5&&t<10.5)){ctx.save();ctx.globalAlpha*=g1;text('留在血液里',325,500,24,'#c62828');
+    particle('rbc',170,555,1.2);text('红细胞',215,555,24,'#333','left','normal');particle('protein',360,555,1.2);text('蛋白质',405,555,24,'#333','left','normal');ctx.restore();}
+  const g2=ep(t,10.5,11.1);if(card(590,470,600,130,g2,t>=10.5)){ctx.save();ctx.globalAlpha*=g2;text('钻进肾小管',890,500,24,'#0277bd');
+    [['water','水'],['sugar','糖'],['salt','盐'],['waste','垃圾']].forEach(([k,n],i)=>{particle(k,640+i*135,555,1.5);text(n,668+i*135,555,24,'#333','left','normal');});ctx.restore();}
+ }},
+{title:'第二步：把好东西捡回来',dur:19,subs:[[0,'第二步：把好东西捡回来！'],[3,'原尿里还有很多身体需要的宝贝，'],[6,'肾小管会把大部分的水、全部的糖和有用的盐，'],[10,'重新送回血液里。'],[12.5,'剩下的垃圾和多余的水，就变成了尿液。'],[15.5,'180升原尿，最后只有1到2升变成尿。']],
+ draw(t){bg('#f6fff4','#fff7ea');
+  rr(80,140,1120,100,20);ctx.fillStyle='#fde0e0';ctx.fill();ctx.lineWidth=4;ctx.strokeStyle='#e57373';ctx.stroke();
+  rr(80,350,1120,110,20);ctx.fillStyle='#fff6d6';ctx.fill();ctx.strokeStyle='#f0b429';ctx.stroke();
+  text('血液（送回身体）→',200,124,22,'#c62828');text('肾小管 →',145,478,22,'#a07800');
+  ctx.save();ctx.globalAlpha=ep(t,5.5,6.5)*.8;ctx.strokeStyle='#66bb6a';ctx.lineWidth=6;ctx.lineCap='round';ctx.lineJoin='round';
+  for(let k=0;k<8;k++){const x=260+k*110;for(let m=0;m<2;m++){const y=335-((t*40+m*50)%100);ctx.beginPath();ctx.moveTo(x-14,y+8);ctx.lineTo(x,y-6);ctx.lineTo(x+14,y+8);ctx.stroke();}}ctx.restore();
+  const types=['water','water','water','water','water','sugar','sugar','salt','salt','waste','waste','waste'];
+  ctx.save();ctx.beginPath();ctx.rect(80,140,1120,320);ctx.clip();
+  for(let i=0;i<90;i++){const t0=.8+i*.2,dt=t-t0;if(dt<0)break;const ty=types[Math.floor(rnd(i+11)*types.length)];
+    const keep=ty==='sugar'||(ty==='water'&&rnd(i+900)<.85)||(ty==='salt'&&rnd(i+901)<.75);
+    const v=110,y0=405+(rnd(i+5)-.5)*70,px=230+rnd(i+300)*780,ta=(px-60)/v,y1=190+(rnd(i+6)-.5)*60;let x,y;
+    if(!keep||dt<ta){x=60+v*dt;y=y0;}else if(dt<ta+.9){x=px;y=lerp(y0,y1,ease((dt-ta)/.9));}else{x=px+130*(dt-ta-.9);y=y1;}
+    if(x<1220)particle(ty,x,y);}
+  ctx.restore();
+  pill('↑ 把有用的捡回来',640,296,26,'#43a047','#fff',ep(t,6,6.6));
+  pill('→ 变成尿液',1090,495,22,'#f6c945','#5d4300',ep(t,12.5,13.1));
+  const ba=ep(t,15.5,16.2);if(ba>0){ctx.save();ctx.globalAlpha=ba;
+    rr(330,515,120,85,14);ctx.fillStyle='#fff3c4';ctx.fill();ctx.lineWidth=4;ctx.strokeStyle='#d9a400';ctx.stroke();text('180升',390,558,28,'#8a6d00');
+    text('原尿',260,558,26,'#555');arrow(480,558,700,558,'#888',5);
+    cup(770,560,.55);text('1~2升',850,558,28,'#8a6d00','left');text('尿',940,558,26,'#555','left');ctx.restore();}
+ }},
+{title:'第三步：尿液去哪里？',dur:16.5,subs:[[0,'第三步：尿液去哪里？'],[2.5,'尿液顺着两根“输尿管”，像滑滑梯一样往下流，'],[6.5,'流进“膀胱”——一个会变大的小口袋。'],[10,'膀胱装满了，大脑就会收到信号：该上厕所啦！'],[13.5,'最后，尿液从“尿道”排出身体。']],
+ draw(t){bg('#eef7ff','#fff8ec');
+  rr(380,80,520,540,150);ctx.fillStyle='rgba(255,224,200,.55)';ctx.fill();
+  const L=mkPath([[540,212],[560,300],[590,420],[618,488]]),Rp=mkPath([[740,212],[720,300],[690,420],[662,488]]);
+  tube(L,14,'#f6d36a','#c99a00');tube(Rp,14,'#f6d36a','#c99a00');
+  drawKidney(515,205,80,{flip:true,inner:true});drawKidney(765,205,80,{inner:true});
+  if(t>2.5)for(let i=0;i<4;i++){const f=((t-2.5)*.45+i/4)%1;let[x,y]=at(L,f);particle('urine',x,y,.6);[x,y]=at(Rp,f);particle('urine',x,y,.6);}
+  const fill=ep(t,3,11)*.92,sc=1+.45*fill,shake=t>10&&t<11.6?Math.sin(t*40)*3:0,bx=640+shake,by=525,rx=62*sc,ry=46*sc;
+  ctx.strokeStyle='#c99a00';ctx.lineWidth=10;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(640,by+ry-4);ctx.lineTo(640,622);ctx.stroke();
+  ctx.save();ctx.beginPath();ctx.ellipse(bx,by,rx,ry,0,0,PI*2);ctx.fillStyle='#fff3c4';ctx.fill();ctx.clip();ctx.fillStyle='#f6c945';ctx.fillRect(bx-rx,by+ry-2*ry*fill,2*rx,2*ry);ctx.restore();
+  ctx.beginPath();ctx.ellipse(bx,by,rx,ry,0,0,PI*2);ctx.lineWidth=6;ctx.strokeStyle='#d9a400';ctx.stroke();
+  const la=ep(t,2.5,3.1);pill('输尿管（滑梯）',290,370,24,'#fff','#8a6d00',la);arrow(390,372,575,382,'#c99a00',4,la);
+  const ba=ep(t,6.5,7.1);pill('膀胱（小口袋）',940,525,24,'#fff','#8a6d00',ba);arrow(850,525,bx+rx+8,525,'#c99a00',4,ba);
+  if(t>10){const a=ep(t,10,10.5);ctx.save();ctx.globalAlpha=a;ctx.setLineDash([10,10]);ctx.lineDashOffset=-t*40;ctx.strokeStyle='#ff7043';ctx.lineWidth=4;
+    ctx.beginPath();ctx.moveTo(bx+40,by-ry);ctx.lineTo(890,260);ctx.lineTo(950,200);ctx.lineTo(1010,170);ctx.stroke();ctx.restore();
+    pill('我装满啦！',bx,by-ry-40,24,'#fff','#d84315',a);
+    ctx.save();ctx.globalAlpha=a;ctx.beginPath();ctx.ellipse(1090,150,92,62,0,0,PI*2);ctx.fillStyle='#f8bbd0';ctx.fill();ctx.lineWidth=4;ctx.strokeStyle='#c2185b';ctx.stroke();
+    ctx.strokeStyle='#c2185b';ctx.lineWidth=3;for(let k=0;k<3;k++){ctx.beginPath();ctx.arc(1060+k*30,150,22,PI*.2,PI*1.4);ctx.stroke();}ctx.restore();
+    pill('大脑：该上厕所啦！',1090,245,24,'#c2185b','#fff',ep(t,10.4,10.9));}
+  const ua=ep(t,13.5,14.1);if(ua>0){pill('尿道',520,600,22,'#fff','#8a6d00',ua);arrow(560,600,632,600,'#c99a00',4,ua);
+    ctx.save();ctx.globalAlpha=ua;toilet(1080,500,1);ctx.restore();arrow(680,612,990,540,'#4f9fd8',5,ua);}
+ }},
+{title:'肾的其他本领',dur:17,subs:[[0,'肾还有很多其他本领：'],[2.5,'它帮身体管理水分：喝多了就多尿，喝少了就少尿；'],[7,'它还能帮忙控制血压，帮助造血、让骨头更强壮。'],[11,'看看尿的颜色：淡黄色，说明水喝够了；'],[14,'颜色很深，就要赶快喝水啦！']],
+ draw(t){bg('#f4fbff','#fff6ee');
+  const items=[[2.5,'管理水分','喝多了多尿，喝少了少尿'],[7,'控制血压','让血管里的压力刚刚好'],[8.5,'造血、强壮骨头','提醒身体多做红细胞']];
+  items.forEach(([t0,a1,b1],i)=>{const e=ep(t,t0,t0+.6),x=70+(1-e)*-50,y=110+i*135;if(!card(x,y,560,112,e,false))return;ctx.save();ctx.globalAlpha*=e;
+    ctx.beginPath();ctx.arc(x+62,y+56,38,0,PI*2);ctx.fillStyle=['#e1f5fe','#fde4ec','#fff3e0'][i];ctx.fill();
+    if(i===0)drop(x+62,y+62,20,'#4fc3f7','#0288d1');else if(i===1)heart(x+62,y+62,34,'#e53935');else{bone(x+52,y+62,.7);particle('rbc',x+78,y+46,.9);}
+    text(a1,x+122,y+38,32,'#333','left');text(b1,x+122,y+78,22,'#777','left','normal');ctx.restore();});
+  const ua=ep(t,11,11.6);if(ua>0){ctx.save();ctx.globalAlpha=ua;
+    text('看看尿的颜色',960,120,32,'#333');
+    const cols=['#fbf6d0','#f7e27d','#efc12f','#c98318'],labs=[['很棒','#2e7d32'],['不错','#558b2f'],['要喝水','#ef6c00'],['快喝水！','#c62828']];
+    cols.forEach((c,i)=>{const x=740+i*120,y=190;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+90,y);ctx.lineTo(x+80,y+140);ctx.lineTo(x+10,y+140);ctx.closePath();
+      ctx.fillStyle='#fff';ctx.fill();ctx.save();ctx.clip();ctx.fillStyle=c;ctx.fillRect(x-5,y+30,100,120);ctx.restore();ctx.lineWidth=4;ctx.strokeStyle='#90a4ae';ctx.stroke();
+      text(labs[i][0],x+45,y+170,24,labs[i][1]);});
+    const hlA=t<14,hx=hlA?740:980,hw=hlA?210:90;rr(hx-12,170,hw+24,225,18);ctx.lineWidth=5;ctx.strokeStyle=hlA?'#43a047':'#e53935';ctx.setLineDash([12,8]);ctx.stroke();ctx.setLineDash([]);
+    pill(hlA?'✓ 水喝够了':'快去喝水！',hlA?845:1025,440,24,hlA?'#43a047':'#e53935','#fff');
+    ctx.restore();}
+ }},
+{title:'怎样保护肾？',dur:16.5,subs:[[0,'怎样保护我们的肾呢？'],[2.5,'第一，多喝白开水，少喝甜饮料；'],[6,'第二，有尿就去厕所，别憋着；'],[9.5,'第三，少吃太咸的零食；'],[12.5,'第四，多运动，早点睡觉！']],
+ draw(t){bg('#fff9ec','#eef8ff');
+  outlined('保护肾的4个好习惯',640,80,40,'#c0392b','#fff',8);
+  const cs=[[2.5,'多喝白开水','少喝甜饮料和汽水'],[6,'有尿别憋着','想尿就去上厕所'],[9.5,'少吃太咸的','辣条、薯片要少吃'],[12.5,'多运动、早睡觉','身体棒，肾也棒']];
+  cs.forEach(([t0,a1,b1],i)=>{const s=back(prog(t,t0,t0+.6));if(s<=0)return;const x=110+(i%2)*550,y=125+Math.floor(i/2)*235;
+    ctx.save();ctx.translate(x+250,y+105);ctx.scale(s,s);ctx.translate(-x-250,-y-105);
+    const nxt=i<3?cs[i+1][0]:99;card(x,y,500,210,1,t>=t0&&t<nxt);
+    ctx.beginPath();ctx.arc(x+100,y+105,72,0,PI*2);ctx.fillStyle=['#e1f5fe','#e8f5e9','#fbe9e7','#fff3e0'][i];ctx.fill();
+    if(i===0)cup(x+100,y+105,1);
+    else if(i===1)toilet(x+92,y+118,.85);
+    else if(i===2){const X=x+100,Y=y+110;rr(X-24,Y-20,48,58,10);ctx.fillStyle='#eceff1';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle='#78909c';ctx.stroke();
+      rr(X-26,Y-40,52,22,8);ctx.fillStyle='#90a4ae';ctx.fill();text('盐',X,Y+10,24,'#546e7a');
+      ctx.strokeStyle='#e53935';ctx.lineWidth=8;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(X-50,Y-50);ctx.lineTo(X+50,Y+50);ctx.stroke();}
+    else{const X=x+100,Y=y+105+Math.abs(Math.sin(t*4))*-14;ctx.beginPath();ctx.arc(X,Y,38,0,PI*2);ctx.fillStyle='#ff7043';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=4;
+      ctx.beginPath();ctx.arc(X-50,Y,40,-.8,.8);ctx.stroke();ctx.beginPath();ctx.arc(X+50,Y,40,PI-.8,PI+.8);ctx.stroke();ctx.beginPath();ctx.moveTo(X,Y-38);ctx.lineTo(X,Y+38);ctx.stroke();}
+    text((i+1)+'',x+30,y+30,26,'#c0392b');
+    text(a1,x+195,y+85,36,'#333','left');text(b1,x+195,y+135,24,'#777','left','normal');ctx.restore();});
+ }},
+{title:'记住啦！',dur:14,subs:[[0,'记住啦：肾是身体的“净水厂”！'],[3.5,'先过滤，再回收，最后把垃圾变成尿排出去。'],[8,'好好照顾我们，我们每天都会努力工作！'],[11,'再见！']],
+ draw(t){bg('#bfe6ff','#fff4e0');
+  const wave=t>11?Math.sin(t*9)*.15:0;
+  drawKidney(230,330+Math.sin(t*3)*6,105,{flip:true,face:true,t,rot:wave});drawKidney(450,330+Math.sin(t*3+1.5)*6,105,{face:true,t:t+1,rot:-wave});
+  if(t>8)for(let i=0;i<6;i++){const p=((t-8)*.4+i/6)%1;ctx.save();ctx.globalAlpha=1-p;heart(340+Math.sin(i*2.3+p*6)*120,210-p*170,16,'#ff6f91');ctx.restore();}
+  ctx.save();ctx.globalAlpha=ep(t,.3,1);outlined('肾 = 身体的净水厂',870,120,44,'#c0392b','#fff',9);ctx.restore();
+  const steps=[['过滤','把血里的垃圾筛出来','#e57373'],['回收','把有用的东西送回去','#66bb6a'],['排出','垃圾变成尿排出去','#f0b429']];
+  steps.forEach(([a1,b1,c],i)=>{const e=ep(t,3.5+i*1.2,4.1+i*1.2),x=640+(1-e)*50,y=200+i*112;if(!card(x,y,520,92,e,false))return;ctx.save();ctx.globalAlpha*=e;
+    ctx.beginPath();ctx.arc(x+50,y+46,30,0,PI*2);ctx.fillStyle=c;ctx.fill();text((i+1)+'',x+50,y+48,30,'#fff');
+    text(a1,x+100,y+46,34,'#333','left');text(b1,x+190,y+48,24,'#666','left','normal');ctx.restore();});
+  if(t>11){ctx.save();ctx.globalAlpha=ep(t,11,11.5);outlined('再见！',340,545,56,'#c0392b','#fff',10);ctx.restore();}
+ }}
+];
+let acc=0;scenes.forEach(s=>{s.start=acc;acc+=s.dur;});
+const TOTAL=acc;
+
+function subtitleAt(si,t){const subs=scenes[si].subs;let k=-1;for(let i=0;i<subs.length;i++)if(t>=subs[i][0])k=i;return k;}
+function drawSub(s){if(!s)return;ctx.font=`bold 34px ${FONT}`;const w=ctx.measureText(s).width+64;rr(640-w/2,628,w,64,18);ctx.fillStyle='rgba(20,20,30,.72)';ctx.fill();text(s,640,661,34,'#fff');}
+function drawTag(i){const s=scenes[i].title;ctx.font=`bold 24px ${FONT}`;const w=ctx.measureText(s).width+78;
+  rr(22,20,w,46,23);ctx.fillStyle='rgba(255,255,255,.88)';ctx.fill();ctx.beginPath();ctx.arc(45,43,16,0,PI*2);ctx.fillStyle='#d9534f';ctx.fill();
+  text(String(i+1),45,44,18,'#fff');text(s,70,44,24,'#333','left');}
+function locate(T){T=clamp(T,0,TOTAL-1e-3);let i=0;while(i<scenes.length-1&&T>=scenes[i].start+scenes[i].dur)i++;return[i,T-scenes[i].start];}
+function renderAt(T){const[i,t]=locate(T),s=scenes[i];ctx.save();ctx.clearRect(0,0,W,H);s.draw(t);ctx.restore();
+  ctx.save();if(i>0)drawTag(i);const k=subtitleAt(i,t);if(k>=0)drawSub(s.subs[k][1]);ctx.restore();
+  const f=Math.max(1-t/.4,(t-(s.dur-.4))/.4,0);if(f>0){ctx.fillStyle=`rgba(255,255,255,${f})`;ctx.fillRect(0,0,W,H);}
+  return i+':'+k;}
+
+/* ---------- script panel ---------- */
+const sc=document.getElementById('script');
+scenes.forEach((s,i)=>{const h=document.createElement('h3');h.textContent=`${i+1}. ${s.title}`;sc.appendChild(h);
+  s.subs.forEach(([,l])=>{const p=document.createElement('p');p.textContent=l;sc.appendChild(p);});});
+
+if(new URLSearchParams(location.search).has('record')){document.body.classList.add('record');window.renderAt=renderAt;window.TOTAL=TOTAL;renderAt(0);return;}
+
+/* ---------- player ---------- */
+const play=document.getElementById('play'),seek=document.getElementById('seek'),time=document.getElementById('time'),chap=document.getElementById('chap'),voice=document.getElementById('voice');
+scenes.forEach((s,i)=>{const o=document.createElement('option');o.value=i;o.textContent=`${i+1}. ${s.title}`;chap.appendChild(o);});
+const hasTTS='speechSynthesis' in window;if(!hasTTS)voice.parentElement.style.display='none';
+try{voice.checked=localStorage.getItem('kidney-voice')==='1';}catch(e){}
+voice.addEventListener('change',()=>{try{localStorage.setItem('kidney-voice',voice.checked?'1':'0');}catch(e){}if(!voice.checked&&hasTTS)speechSynthesis.cancel();lastKey='';});
+let cur=0,playing=false,last=performance.now(),lastKey='';
+const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+function setPlaying(p){playing=p;if(p&&cur>=TOTAL-.01)cur=0;play.textContent=p?'❚❚ 暂停':'▶ 播放';if(!p&&hasTTS)speechSynthesis.cancel();lastKey='';}
+function speak(s){if(!hasTTS)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(s);u.lang='zh-CN';u.rate=1.05;
+  const v=speechSynthesis.getVoices().find(v=>/zh[-_]CN/i.test(v.lang));if(v)u.voice=v;speechSynthesis.speak(u);}
+function tick(now){if(playing){cur+=(now-last)/1000;if(cur>=TOTAL){cur=TOTAL;setPlaying(false);}}last=now;
+  const key=renderAt(cur);
+  if(playing&&voice.checked&&key!==lastKey){lastKey=key;const[i,t]=locate(cur),k=subtitleAt(i,t);if(k>=0)speak(scenes[i].subs[k][1]);}
+  if(!seeking)seek.value=Math.round(cur/TOTAL*1000);time.textContent=fmt(cur)+' / '+fmt(TOTAL);
+  const ci=locate(cur)[0];if(chap.value!=ci)chap.value=ci;requestAnimationFrame(tick);}
+let seeking=false;
+seek.addEventListener('input',()=>{seeking=true;cur=seek.value/1000*TOTAL;lastKey='';if(hasTTS)speechSynthesis.cancel();});
+seek.addEventListener('change',()=>{seeking=false;});
+chap.addEventListener('change',()=>{cur=scenes[+chap.value].start;lastKey='';if(hasTTS)speechSynthesis.cancel();});
+play.addEventListener('click',()=>setPlaying(!playing));cv.addEventListener('click',()=>setPlaying(!playing));
+document.getElementById('fs').addEventListener('click',()=>{const el=document.querySelector('.player');(document.fullscreenElement?document.exitFullscreen():el.requestFullscreen?.())});
+document.addEventListener('keydown',e=>{if(e.code==='Space'&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT'){e.preventDefault();setPlaying(!playing);}});
+requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
