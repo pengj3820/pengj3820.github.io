@@ -20,7 +20,6 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:16/9;cursor:pointer}
 #play{background:var(--accent);color:#fff;border:none;min-width:84px}
 #seek{flex:1 1 200px;accent-color:var(--accent)}
 #time{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px}
-label.voice{display:flex;gap:6px;align-items:center;font-size:15px;cursor:pointer}
 .links{margin:14px 0;display:flex;gap:16px;flex-wrap:wrap}
 .links a{color:var(--accent)}
 details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-top:12px}
@@ -43,18 +42,20 @@ body.record .player{border-radius:0;box-shadow:none}
     <input id="seek" type="range" min="0" max="1000" value="0" aria-label="进度">
     <span id="time">0:00 / 0:00</span>
     <select id="chap" aria-label="章节"></select>
-    <label class="voice"><input id="voice" type="checkbox"> 朗读字幕</label>
+    <button id="mute" type="button">🔊 声音开</button>
     <button id="fs" type="button">⛶ 全屏</button>
   </div>
 </div>
+<audio id="nar" src="narration.mp3" preload="auto"></audio>
 <div class="links">
   <a href="kidney-for-kids.mp4" download>⬇ 下载 MP4 视频</a>
 </div>
 <details>
-  <summary>旁白稿（可以照着自己配音）</summary>
+  <summary>旁白稿</summary>
   <div id="script"></div>
 </details>
 </main>
+<script src="timing.js"></script>
 <script>
 (function(){
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
@@ -388,47 +389,52 @@ const scenes=[
   if(t>11){ctx.save();ctx.globalAlpha=ep(t,11,11.5);outlined('再见！',340,545,56,'#c0392b','#fff',10);ctx.restore();}
  }}
 ];
+/* narration timing (timing.js): stretch each scene so every line finishes before the next one starts */
+const TIMING=window.KIDNEY_TIMING||null;
+scenes.forEach((s,i)=>{s.dStarts=s.subs.map(x=>x[0]);s.dDur=s.dur;const tm=TIMING&&TIMING[i];
+  s.rStarts=tm?tm.starts:s.dStarts.slice();if(tm)s.dur=tm.dur;});
+function toDesign(s,t){const A=[0,...s.rStarts,s.dur],D=[0,...s.dStarts,s.dDur];
+  for(let k=0;k<A.length-1;k++)if(t<=A[k+1]){const span=A[k+1]-A[k];return span>0?lerp(D[k],D[k+1],(t-A[k])/span):D[k+1];}
+  return s.dDur;}
 let acc=0;scenes.forEach(s=>{s.start=acc;acc+=s.dur;});
 const TOTAL=acc;
 
-function subtitleAt(si,t){const subs=scenes[si].subs;let k=-1;for(let i=0;i<subs.length;i++)if(t>=subs[i][0])k=i;return k;}
+function subtitleAt(si,t){const st=scenes[si].rStarts;let k=-1;for(let i=0;i<st.length;i++)if(t>=st[i])k=i;return k;}
 function drawSub(s){if(!s)return;ctx.font=`bold 34px ${FONT}`;const w=ctx.measureText(s).width+64;rr(640-w/2,628,w,64,18);ctx.fillStyle='rgba(20,20,30,.72)';ctx.fill();text(s,640,661,34,'#fff');}
 function drawTag(i){const s=scenes[i].title;ctx.font=`bold 24px ${FONT}`;const w=ctx.measureText(s).width+78;
   rr(22,20,w,46,23);ctx.fillStyle='rgba(255,255,255,.88)';ctx.fill();ctx.beginPath();ctx.arc(45,43,16,0,PI*2);ctx.fillStyle='#d9534f';ctx.fill();
   text(String(i+1),45,44,18,'#fff');text(s,70,44,24,'#333','left');}
 function locate(T){T=clamp(T,0,TOTAL-1e-3);let i=0;while(i<scenes.length-1&&T>=scenes[i].start+scenes[i].dur)i++;return[i,T-scenes[i].start];}
-function renderAt(T){const[i,t]=locate(T),s=scenes[i];ctx.save();ctx.clearRect(0,0,W,H);s.draw(t);ctx.restore();
+function renderAt(T){const[i,t]=locate(T),s=scenes[i];ctx.save();ctx.clearRect(0,0,W,H);s.draw(toDesign(s,t));ctx.restore();
   ctx.save();if(i>0)drawTag(i);const k=subtitleAt(i,t);if(k>=0)drawSub(s.subs[k][1]);ctx.restore();
   const f=Math.max(1-t/.4,(t-(s.dur-.4))/.4,0);if(f>0){ctx.fillStyle=`rgba(255,255,255,${f})`;ctx.fillRect(0,0,W,H);}
-  return i+':'+k;}
+}
 
 /* ---------- script panel ---------- */
 const sc=document.getElementById('script');
 scenes.forEach((s,i)=>{const h=document.createElement('h3');h.textContent=`${i+1}. ${s.title}`;sc.appendChild(h);
   s.subs.forEach(([,l])=>{const p=document.createElement('p');p.textContent=l;sc.appendChild(p);});});
 
-if(new URLSearchParams(location.search).has('record')){document.body.classList.add('record');window.renderAt=renderAt;window.TOTAL=TOTAL;renderAt(0);return;}
+if(new URLSearchParams(location.search).has('record')){document.body.classList.add('record');window.renderAt=renderAt;window.TOTAL=TOTAL;window.SCRIPT=scenes.map(s=>({starts:s.dStarts,dur:s.dDur,lines:s.subs.map(x=>x[1])}));renderAt(0);return;}
 
 /* ---------- player ---------- */
-const play=document.getElementById('play'),seek=document.getElementById('seek'),time=document.getElementById('time'),chap=document.getElementById('chap'),voice=document.getElementById('voice');
+const play=document.getElementById('play'),seek=document.getElementById('seek'),time=document.getElementById('time'),chap=document.getElementById('chap'),mute=document.getElementById('mute'),nar=document.getElementById('nar');
 scenes.forEach((s,i)=>{const o=document.createElement('option');o.value=i;o.textContent=`${i+1}. ${s.title}`;chap.appendChild(o);});
-const hasTTS='speechSynthesis' in window;if(!hasTTS)voice.parentElement.style.display='none';
-try{voice.checked=localStorage.getItem('kidney-voice')==='1';}catch(e){}
-voice.addEventListener('change',()=>{try{localStorage.setItem('kidney-voice',voice.checked?'1':'0');}catch(e){}if(!voice.checked&&hasTTS)speechSynthesis.cancel();lastKey='';});
-let cur=0,playing=false,last=performance.now(),lastKey='';
+let cur=0,playing=false,last=performance.now(),seeking=false,audioOK=false;
+nar.addEventListener('canplay',()=>{audioOK=true;});nar.addEventListener('error',()=>{audioOK=false;mute.style.display='none';});
 const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
-function setPlaying(p){playing=p;if(p&&cur>=TOTAL-.01)cur=0;play.textContent=p?'❚❚ 暂停':'▶ 播放';if(!p&&hasTTS)speechSynthesis.cancel();lastKey='';}
-function speak(s){if(!hasTTS)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(s);u.lang='zh-CN';u.rate=1.05;
-  const v=speechSynthesis.getVoices().find(v=>/zh[-_]CN/i.test(v.lang));if(v)u.voice=v;speechSynthesis.speak(u);}
-function tick(now){if(playing){cur+=(now-last)/1000;if(cur>=TOTAL){cur=TOTAL;setPlaying(false);}}last=now;
-  const key=renderAt(cur);
-  if(playing&&voice.checked&&key!==lastKey){lastKey=key;const[i,t]=locate(cur),k=subtitleAt(i,t);if(k>=0)speak(scenes[i].subs[k][1]);}
+function jump(t){cur=clamp(t,0,TOTAL);try{nar.currentTime=cur;}catch(e){}}
+function setPlaying(p){playing=p;if(p&&cur>=TOTAL-.01)jump(0);play.textContent=p?'❚❚ 暂停':'▶ 播放';
+  if(p){jump(cur);nar.play().catch(()=>{});}else nar.pause();}
+function tick(now){if(playing){if(audioOK&&!nar.paused&&!nar.ended)cur=nar.currentTime;else cur+=(now-last)/1000;
+    if(cur>=TOTAL){cur=TOTAL;setPlaying(false);}}last=now;
+  renderAt(cur);
   if(!seeking)seek.value=Math.round(cur/TOTAL*1000);time.textContent=fmt(cur)+' / '+fmt(TOTAL);
   const ci=locate(cur)[0];if(chap.value!=ci)chap.value=ci;requestAnimationFrame(tick);}
-let seeking=false;
-seek.addEventListener('input',()=>{seeking=true;cur=seek.value/1000*TOTAL;lastKey='';if(hasTTS)speechSynthesis.cancel();});
+seek.addEventListener('input',()=>{seeking=true;jump(seek.value/1000*TOTAL);});
 seek.addEventListener('change',()=>{seeking=false;});
-chap.addEventListener('change',()=>{cur=scenes[+chap.value].start;lastKey='';if(hasTTS)speechSynthesis.cancel();});
+chap.addEventListener('change',()=>jump(scenes[+chap.value].start));
+mute.addEventListener('click',()=>{nar.muted=!nar.muted;mute.textContent=nar.muted?'🔇 声音关':'🔊 声音开';});
 play.addEventListener('click',()=>setPlaying(!playing));cv.addEventListener('click',()=>setPlaying(!playing));
 document.getElementById('fs').addEventListener('click',()=>{const el=document.querySelector('.player');(document.fullscreenElement?document.exitFullscreen():el.requestFullscreen?.())});
 document.addEventListener('keydown',e=>{if(e.code==='Space'&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT'){e.preventDefault();setPlaying(!playing);}});

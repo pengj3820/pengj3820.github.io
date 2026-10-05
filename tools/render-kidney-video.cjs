@@ -1,5 +1,6 @@
 // Renders public/kidney/index.html to an MP4 frame by frame.
-// Usage: NODE_PATH=$(npm root -g) node tools/render-kidney-video.cjs [fps] [--stills t1,t2,...]
+// Usage: NODE_PATH=$(npm root -g) node tools/render-kidney-video.cjs [fps] [--stills t1,t2,... outDir] [--dump-script out.json]
+// Muxes public/kidney/narration.mp3 into the video when it exists (see make-kidney-narration.py).
 // Needs Playwright (Chromium) and ffmpeg with libx264.
 const { chromium } = require('playwright');
 const { spawn } = require('child_process');
@@ -23,6 +24,13 @@ const fps = Number(args.find((a) => /^\d+$/.test(a)) || 30);
       return document.getElementById('c').toDataURL('image/jpeg', 0.95).split(',')[1];
     }, t);
 
+  const dumpIdx = args.indexOf('--dump-script');
+  if (dumpIdx >= 0) {
+    fs.writeFileSync(args[dumpIdx + 1], JSON.stringify(await page.evaluate(() => window.SCRIPT), null, 1));
+    await browser.close();
+    return;
+  }
+
   if (stillsIdx >= 0) {
     const outDir = args[stillsIdx + 2] || '.';
     for (const t of args[stillsIdx + 1].split(',').map(Number)) {
@@ -33,8 +41,10 @@ const fps = Number(args.find((a) => /^\d+$/.test(a)) || 30);
   }
 
   const out = path.join(root, 'kidney-for-kids.mp4');
+  const audio = path.join(root, 'narration.mp3');
+  const audioArgs = fs.existsSync(audio) ? ['-i', audio, '-map', '0:v', '-map', '1:a', '-c:a', 'aac', '-b:a', '128k'] : [];
   const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(fps), '-c:v', 'mjpeg', '-i', '-',
-    '-c:v', 'libx264', '-preset', 'slow', '-crf', '23', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', out], { stdio: ['pipe', 'inherit', 'inherit'] });
+    ...audioArgs, '-c:v', 'libx264', '-preset', 'slow', '-crf', '23', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', out], { stdio: ['pipe', 'inherit', 'inherit'] });
   const frames = Math.round(total * fps);
   for (let f = 0; f < frames; f++) {
     const buf = Buffer.from(await grab(f / fps), 'base64');
