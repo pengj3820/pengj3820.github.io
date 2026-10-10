@@ -2,37 +2,37 @@
 
 Usage:
   NODE_PATH=$(npm root -g) node tools/render-kidney-video.cjs --dump-script script.json
-  python3 tools/make-kidney-narration.py script.json <matcha-icefall-zh-baker dir> <vocos-22khz-univ.onnx>
+  python3 tools/make-kidney-narration.py script.json
 
 Writes public/kidney/timing.js (per-scene line start times and scene length) and
-public/kidney/narration.mp3. Needs `pip install sherpa-onnx soundfile numpy` and ffmpeg.
-The voice is matcha-icefall-zh-baker (tts-models release) with the vocos-22khz-univ vocoder
-(vocoder-models release) from https://github.com/k2-fsa/sherpa-onnx/releases. It came out
-clearer than vits-melo-tts-zh_en when the narration was checked with a speech recogniser.
+public/kidney/narration.mp3. Needs `pip install edge-tts numpy` and ffmpeg, plus network
+access to speech.platform.bing.com (Microsoft Edge read-aloud voices). Behind a TLS-inspecting
+proxy, point SSL_CERT_FILE at its CA bundle.
 """
+import asyncio
 import json
 import os
+import ssl
 import subprocess
 import sys
 
+import edge_tts
+import edge_tts.communicate
 import numpy as np
-import sherpa_onnx as so
-import soundfile as sf
 
 OUT = os.path.join(os.path.dirname(__file__), '..', 'public', 'kidney')
-SPEED = 0.9  # a little slower than normal for young listeners
+VOICE = 'zh-CN-XiaoxiaoNeural'
+RATE = '-5%'  # a little slower than normal for young listeners
+SR = 24000
 GAP = 0.35  # silence between lines (s)
 FIRST = 0.5  # earliest start of a scene's first line, after the fade-in (s)
 TAIL = 0.9  # time a scene holds after its last line (s)
 
 # Spoken text differs from the subtitle where the TTS would misread it.
-SAY = [
-    ('长管子', '常管子'),  # 长 defaults to zhǎng
-    ('180升', '一百八十升'),
-    ('100万', '一百万'),
-    ('1到2升', '一到两升'),
-    ('“', ''), ('”', ''), ('——', '，'), ('……', '。'), ('：', '，'), ('；', '，'),  # OOV punctuation is dropped
-]
+SAY = [('1到2升', '一到两升')]
+
+if os.environ.get('SSL_CERT_FILE'):  # edge-tts pins certifi's bundle otherwise
+    edge_tts.communicate._SSL_CTX = ssl.create_default_context(cafile=os.environ['SSL_CERT_FILE'])
 
 
 def say(line):
@@ -41,43 +41,39 @@ def say(line):
     return line
 
 
-def main():
-    script = json.load(open(sys.argv[1], encoding='utf-8'))
-    m = sys.argv[2].rstrip('/') + '/'
-    tts = so.OfflineTts(so.OfflineTtsConfig(
-        model=so.OfflineTtsModelConfig(
-            matcha=so.OfflineTtsMatchaModelConfig(acoustic_model=m + 'model-steps-3.onnx', vocoder=sys.argv[3],
-                                                  lexicon=m + 'lexicon.txt', tokens=m + 'tokens.txt',
-                                                  data_dir='', dict_dir=m + 'dict'),
-            num_threads=4),
-        rule_fsts=','.join(m + f for f in ('phone.fst', 'date.fst', 'number.fst'))))
+async def synth(text):
+    mp3 = b''.join([c['data'] async for c in edge_tts.Communicate(text, VOICE, rate=RATE).stream() if c['type'] == 'audio'])
+    pcm = subprocess.run(['ffmpeg', '-loglevel', 'error', '-i', 'pipe:0', '-f', 'f32le', '-ac', '1', '-ar', str(SR), 'pipe:1'],
+                         input=mp3, capture_output=True, check=True).stdout
+    wav = np.frombuffer(pcm, dtype=np.float32)
+    loud = np.flatnonzero(np.abs(wav) > 0.01)  # trim the service's leading/trailing silence
+    return wav[max(0, loud[0] - SR // 50):loud[-1] + SR // 20] if len(loud) else wav
 
+
+async def main():
+    script = json.load(open(sys.argv[1], encoding='utf-8'))
     timing, clips, t0 = [], [], 0.0
     for si, scene in enumerate(script):
         starts, end = [], 0.0
         for k, (design, line) in enumerate(zip(scene['starts'], scene['lines'])):
-            audio = tts.generate(say(line), sid=0, speed=SPEED)
-            sr = audio.sample_rate
-            wav = np.asarray(audio.samples, dtype=np.float32)
+            wav = await synth(say(line))
             start = max(design, FIRST if k == 0 else end + GAP)
             starts.append(round(start, 3))
-            end = start + len(wav) / sr
+            end = start + len(wav) / SR
             clips.append((t0 + start, wav))
-            print(f'{si + 1}.{k + 1} {start:6.2f}s +{len(wav) / sr:4.2f}s {line}')
+            print(f'{si + 1}.{k + 1} {start:6.2f}s +{len(wav) / SR:4.2f}s {line}')
         dur = round(max(scene['dur'], end + TAIL), 3)
         timing.append({'starts': starts, 'dur': dur})
         t0 += dur
 
-    track = np.zeros(int(t0 * sr) + 1, dtype=np.float32)
+    track = np.zeros(int(t0 * SR) + 1, dtype=np.float32)
     for at, wav in clips:
-        i = int(at * sr)
+        i = int(at * SR)
         track[i:i + len(wav)] += wav[:len(track) - i]
     track *= 0.9 / max(1e-6, float(np.abs(track).max()))
-    wav_path = os.path.join(OUT, 'narration.wav')
-    sf.write(wav_path, track, sr)
-    subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', wav_path, '-c:a', 'libmp3lame', '-b:a', '96k',
-                    os.path.join(OUT, 'narration.mp3')], check=True)
-    os.remove(wav_path)
+    subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-f', 'f32le', '-ar', str(SR), '-ac', '1', '-i', 'pipe:0',
+                    '-c:a', 'libmp3lame', '-b:a', '96k', os.path.join(OUT, 'narration.mp3')],
+                   input=track.tobytes(), check=True)
     with open(os.path.join(OUT, 'timing.js'), 'w', encoding='utf-8') as f:
         f.write('// Generated by tools/make-kidney-narration.py: narration start times and length per scene.\n')
         f.write('window.KIDNEY_TIMING=' + json.dumps(timing, separators=(',', ':')) + ';\n')
@@ -85,4 +81,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
